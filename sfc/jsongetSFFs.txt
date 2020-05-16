@@ -1,1 +1,0 @@
-{"service-function-forwarders": {"service-function-forwarder": [{"name": "SFF1", "service-node": "sf1", "sff-data-plane-locator": [{"name": "eth0", "data-plane-locator": {"port": 5432, "ip": "10.0.0.11", "transport": "service-locator:vxlan-gpe"}, "service-function-forwarder-ovs:ovs-bridge": {}}], "rest-uri": "http://10.0.0.11:5000", "ip-mgmt-address": "10.0.0.11"}]}}

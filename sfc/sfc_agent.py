@@ -278,6 +278,8 @@ def get_data_plane_paths():
            '<sfname>', methods=['PUT', 'POST'])
 def create_sf(sfname):
     logger.info("Received request for SF creation: %s", sfname)
+    # show the json string get from API
+    logger.info(flask.request.get_json()['service-function'][0])
 
     if not flask.request.json:
         flask.abort(400)
@@ -293,6 +295,7 @@ def create_sf(sfname):
     for data_plane_locator in data_plane_locator_list:
         if ("ip" in data_plane_locator) and ("port" in data_plane_locator):
             sf_port = data_plane_locator['port']
+            # logger.info(local_sf_topo[sfname]['type'])
             _, sf_type = (local_sf_topo[sfname]['type']).split(':')
             sf_ip = data_plane_locator['ip']
             # TODO: We need more checks to make sure IP in locator actually

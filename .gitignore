@@ -1,7 +1,11 @@
+*.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+.idea/
+.gitignore
 
 # C extensions
 *.so

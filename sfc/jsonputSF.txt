@@ -1,1 +1,0 @@
-{"service-function": [{"name": "sf2", "ip-mgmt-address": "192.168.31.186", "rest-uri": "http://192.168.31.186:5000", "type": "service-function-type:firewall", "sf-data-plane-locator": [{"ip": "192.168.31.186", "port": 40002, "transport": "service-locator:vxlan-gpe", "name": "vxlan", "service-function-forwarder": "SFF2"}]}]}
