@@ -98,6 +98,7 @@ class MyVxlanGpeNshIpClient(MyNshBaseClass):
         packet = build_nsh_header(self.encapsulate_header_values,
                                   self.base_header_values,
                                   self.ctx_header_values)
+        # TODO: 这里指定了测试发送的报文内的数据内容
         udp_inner_packet = build_udp_packet(self.inner_header.inner_src_ip, self.inner_header.inner_dest_ip,
                                             self.inner_header.inner_src_port,
                                             self.inner_header.inner_dest_port, "test".encode('utf-8'))

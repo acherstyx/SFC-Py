@@ -249,7 +249,7 @@ class BasicService(object):
 
         """
         logger.info('%s service received packet from %s:', self.service_type, addr)
-        logger.debug('%s %s', addr, binascii.hexlify(data))
+        logger.info('%s %s', addr, binascii.hexlify(data).decode("utf-8"))
         packet = (data, addr)
         try:
             self.packet_queue.put_nowait(packet)
@@ -274,7 +274,7 @@ class BasicService(object):
 
         """
         logger.info('%s service received packet from %s:', self.service_type, addr)
-        logger.debug('%s %s', addr, binascii.hexlify(data))
+        logger.info('%s %s', addr, binascii.hexlify(data).decode("utf-8"))
         rw_data = self._process_incoming_packet(data, addr)
         if self.is_eth_nsh:
             offset = 8 + 14
@@ -285,7 +285,8 @@ class BasicService(object):
             # if nsh_decode.is_vxlan_nsh_legacy_message(data, 0):
             # Disregard source port of received packet and send packet back to 6633
             addr_l = list(addr)
-            addr_l[1] = 6633
+            # TODO: Bug修正，送回SFF，这个端口应该是SFF的端口，正常情况下不应该写死，而应该从ODL的SFC信息中获得
+            addr_l[1] = 4789
             addr = tuple(addr_l)
             self.transport.sendto(rw_data, addr)
             logger.info('%s: sending packets to %s', self.service_type, addr)
@@ -484,6 +485,7 @@ class MySffServer(BasicService):
         address = ()
         rw_data = bytearray(data)
         self._decode_headers(data)
+        logger.debug("%s: Packet dump: %s", self.service_type, binascii.hexlify(rw_data))
 
         sfc_globals.sff_processed_packets += 1
         # logger.info('*******(mysff server) received packets "%d"', sfc_globals.received_packets)
@@ -506,7 +508,7 @@ class MySffServer(BasicService):
             # send packet to its original destination
             elif self.server_base_values.service_index:
                 # logger.info("%s: End of path", self.service_type)
-                # logger.debug("%s: Packet dump: %s", self.service_type, binascii.hexlify(rw_data))
+                logger.debug("%s: Packet dump: %s", self.service_type, binascii.hexlify(rw_data))
                 # logger.debug('%s: service index end up as: %d', self.service_type,
                 #             self.server_base_values.service_index)
 
@@ -548,7 +550,7 @@ class MySffServer(BasicService):
                             sock_raw = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
                     except socket.error as msg:
                         logger.error("Socket could not be created. Error Code : %s", msg)
-                        sys.exit()
+                        # sys.exit()
 
                     logger.info("End of Chain. Sending packet to %s %s", bearing['d_addr'], bearing['d_port'])
                     sock_raw.sendto(inner_packet, (bearing['d_addr'],

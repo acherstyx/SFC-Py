@@ -319,17 +319,17 @@ def auto_sff_name():
 
                         # logger.info("Auto SFF name is: %s", sff_name)
 
-            if netifaces.AF_INET6 in addr_list_dict:
-                inet_addr_list = addr_list_dict[netifaces.AF_INET6]
-
-                for value in inet_addr_list:
-                    # logger.info('addr %s', value['addr'])
-                    sff_name = find_sff_locator_by_ip(value['addr'])
-                    if sff_name:
-                        sfc_globals.set_my_sff_name(sff_name)
-                        sff_name = sfc_globals.get_my_sff_name()
-
-                        logger.info("Auto SFF name is: %s", sff_name)
+            # if netifaces.AF_INET6 in addr_list_dict:
+            #     inet_addr_list = addr_list_dict[netifaces.AF_INET6]
+            #
+            #     for value in inet_addr_list:
+            #         # logger.info('addr %s', value['addr'])
+            #         sff_name = find_sff_locator_by_ip(value['addr'])
+            #         if sff_name:
+            #             sfc_globals.set_my_sff_name(sff_name)
+            #             sff_name = sfc_globals.get_my_sff_name()
+            #
+            #             logger.info("Auto SFF name is: %s", sff_name)
 
     if not sff_name:
         logger.warn("\n\nCould not determine SFF name. This means ODL is not running \n"
