@@ -14,6 +14,9 @@ class SFC:
         self.__init_service_node_json()
         self.sff_json = {}
         self.__init_sff_json()
+        self.sfc_json = {}
+        self.__init_sfc_json()
+        self.sfp_json = {}
 
     def _create_sf(self):
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
@@ -163,6 +166,25 @@ class SFC:
 
         print(json.dumps(self.sff_json))
 
+    def __init_sfc_json(self):
+        self.sfc_json["service-function-chains"] = {}
+        self.sfc_json["service-function-chains"]["service-function-chain"] = []
+
+    def add_sfc(self, sfc_name, service_type_list):
+        # 添加单个类别的服务到服务链
+        self.sfc_json["service-function-chains"]["service-function-chain"].append({})
+        self.sfc_json["service-function-chains"]["service-function-chain"][-1]["name"] = sfc_name
+        self.sfc_json["service-function-chains"]["service-function-chain"][-1]["sfc-service-function"] = []
+
+        for index, service_type in enumerate(service_type_list):
+            self.sfc_json["service-function-chains"]["service-function-chain"][-1]["sfc-service-function"].append({})
+            self.sfc_json["service-function-chains"]["service-function-chain"][-1]["sfc-service-function"][-1][
+                "name"] = "chain-node-" + str(index + 1)
+            self.sfc_json["service-function-chains"]["service-function-chain"][-1]["sfc-service-function"][-1][
+                "type"] = service_type
+
+        print(json.dumps(self.sfc_json))
+
     def apply_config(self):
         self._create_sf()
         sleep(1)
@@ -183,3 +205,4 @@ if __name__ == "__main__":
     sfc_connection.add_sf("SF1", "127.0.0.1", "10001", "firewall", "SFF1")
     sfc_connection.add_service_node("Node1", "SF1", "SFF1", "127.0.0.1")
     sfc_connection.add_sff("SFF1", "Node1", "127.0.0.1", 4789)
+    sfc_connection.add_sfc("chain-1", ["dpi", "firewall"])
