@@ -22,7 +22,7 @@ class SFC:
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/config/service-function:service-functions/"
 
-        payload = "{\r\n  \"service-functions\": {\r\n    \"service-function\": [\r\n      {\r\n        \"name\": \"SF2\",\r\n        \"rest-uri\": \"http://127.0.0.1:5000\",\r\n        \"sf-data-plane-locator\": [\r\n          {\r\n            \"name\": \"vxlan\",\r\n            \"port\": 10001,\r\n            \"ip\": \"127.0.0.1\",\r\n            \"service-function-forwarder\": \"SFF1\",\r\n            \"transport\": \"service-locator:vxlan-gpe\"\r\n          }\r\n        ],\r\n        \"type\": \"dpi\",\r\n        \"ip-mgmt-address\": \"127.0.0.1\"\r\n      },\r\n      {\r\n        \"name\": \"SF1\",\r\n        \"rest-uri\": \"http://127.0.0.1:5000\",\r\n        \"sf-data-plane-locator\": [\r\n          {\r\n            \"name\": \"vxlan\",\r\n            \"port\": 10000,\r\n            \"ip\": \"127.0.0.1\",\r\n            \"service-function-forwarder\": \"SFF1\",\r\n            \"transport\": \"service-locator:vxlan-gpe\"\r\n          }\r\n        ],\r\n        \"type\": \"firewall\",\r\n        \"ip-mgmt-address\": \"127.0.0.1\"\r\n      }\r\n    ]\r\n  }\r\n}"
+        payload = json.dumps(self.sf_json)
         headers = {
             'Cache-Control': 'no-cache',
             'Authorization': 'Basic YWRtaW46YWRtaW4=',
@@ -37,7 +37,7 @@ class SFC:
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/config/service-node:service-nodes"
 
-        payload = "{\r\n  \"service-nodes\": {\r\n    \"service-node\": [\r\n      {\r\n        \"name\": \"Node2\",\r\n        \"service-function\": [\r\n          \"SF2\"\r\n        ],\r\n        \"ip-mgmt-address\": \"127.0.0.1\",\r\n        \"service-function-forwarder\": [\r\n          \"SFF1\"\r\n        ]\r\n      },\r\n      {\r\n        \"name\": \"Node1\",\r\n        \"service-function\": [\r\n          \"SF1\"\r\n        ],\r\n        \"ip-mgmt-address\": \"127.0.0.1\",\r\n        \"service-function-forwarder\": [\r\n          \"SFF1\"\r\n        ]\r\n      }\r\n    ]\r\n  }\r\n};"
+        payload = json.dumps(self.service_node_json)
         headers = {
             'Authorization': 'Basic YWRtaW46YWRtaW4=',
             'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ class SFC:
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/config/service-function-chain:service-function-chains/"
 
-        payload = "{\r\n  \"service-function-chains\": {\r\n    \"service-function-chain\": [\r\n      {\r\n        \"name\": \"sfc-chain1\",\r\n        \"sfc-service-function\": [\r\n          {\r\n            \"name\": \"sf-chain-node-1\",\r\n            \"type\": \"dpi\"\r\n          },\r\n          {\r\n            \"name\": \"sf-chain-node-2\",\r\n            \"type\": \"firewall\"\r\n          }\r\n        ]\r\n      }\r\n    ]\r\n  }\r\n}"
+        payload = json.dumps(self.sfc_json)
         headers = {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
@@ -80,7 +80,7 @@ class SFC:
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/config/service-function-path:service-function-paths/"
 
-        payload = "{\r\n  \"service-function-paths\": {\r\n    \"service-function-path\": [\r\n      {\r\n        \"name\": \"sfc-path1\",\r\n        \"service-chain-name\": \"sfc-chain1\",\r\n        \"transport-type\": \"service-locator:vxlan-gpe\",\r\n        \"symmetric\": true\r\n      }\r\n    ]\r\n  }\r\n}"
+        payload = "{\r\n  \"service-function-paths\": {\r\n    \"service-function-path\": [\r\n      {\r\n        \"name\": \"sfc-path1\",\r\n        \"service-chain-name\": \"chain-1\",\r\n        \"transport-type\": \"service-locator:vxlan-gpe\",\r\n        \"symmetric\": true\r\n      }\r\n    ]\r\n  }\r\n}"
         headers = {
             'Authorization': 'Basic YWRtaW46YWRtaW4=',
             'Content-Type': 'application/json',
@@ -201,8 +201,12 @@ class SFC:
 
 if __name__ == "__main__":
     sfc_connection = SFC("localhost", "8181")
-    # sfc_connection.apply_config()
+
     sfc_connection.add_sf("SF1", "127.0.0.1", "10001", "firewall", "SFF1")
+    sfc_connection.add_sf("SF2", "127.0.0.1", "10002", "dpi", "SFF1")
     sfc_connection.add_service_node("Node1", "SF1", "SFF1", "127.0.0.1")
-    sfc_connection.add_sff("SFF1", "Node1", "127.0.0.1", 4789)
+    sfc_connection.add_service_node("Node2", "SF2", "SFF1", "127.0.0.1")
+    # sfc_connection.add_sff("SFF1", "Node1", "127.0.0.1", 4789)
     sfc_connection.add_sfc("chain-1", ["dpi", "firewall"])
+
+    sfc_connection.apply_config()
