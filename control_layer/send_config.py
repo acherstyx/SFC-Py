@@ -8,17 +8,14 @@ class SFC:
         self.odl_addr = odl_addr
         self.odl_port = odl_port
 
-        self.sf_json = {}
-        self.__init_sf_json()
-        self.service_node_json = {}
-        self.__init_service_node_json()
-        self.sff_json = {}
-        self.__init_sff_json()
-        self.sfc_json = {}
-        self.__init_sfc_json()
+        self.sf_json = {"service-functions": {"service-function": []}}
+        self.service_node_json = {"service-nodes": {"service-node": []}}
+        self.sff_json = {"service-function-forwarders": {"service-function-forwarder": []}}
+        self.sfc_json = {"service-function-chains": {"service-function-chain": []}}
+
         self.sfp_json = {}
 
-    def _create_sf(self):
+    def __create_sf(self):
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/config/service-function:service-functions/"
 
@@ -33,7 +30,7 @@ class SFC:
         response = requests.request("PUT", url, headers=headers, data=payload)
         print("[Create SF]", response.status_code, response.text.encode('utf8'))
 
-    def _create_node(self):
+    def __create_node(self):
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/config/service-node:service-nodes"
 
@@ -47,11 +44,11 @@ class SFC:
         response = requests.request("PUT", url, headers=headers, data=payload)
         print("[Create Node]", response.status_code, response.text.encode('utf8'))
 
-    def _create_sff(self):
+    def __create_sff(self):
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/config/service-function-forwarder:service-function-forwarders/"
 
-        payload = "{\r\n  \"service-function-forwarders\": {\r\n    \"service-function-forwarder\": [\r\n      {\r\n        \"name\": \"SFF1\",\r\n        \"service-node\": \"Node1\",\r\n        \"sff-data-plane-locator\": [\r\n          {\r\n            \"name\": \"dp1\",\r\n            \"data-plane-locator\": {\r\n              \"port\": 4789,\r\n              \"ip\": \"127.0.0.1\",\r\n              \"transport\": \"service-locator:vxlan-gpe\"\r\n            },\r\n            \"service-function-forwarder-ovs:ovs-options\": {}\r\n          }\r\n        ],\r\n        \"service-function-forwarder-ovs:ovs-bridge\": {},\r\n        \"rest-uri\": \"http://127.0.0.1:5000\",\r\n        \"service-function-dictionary\": [\r\n          {\r\n            \"name\": \"SF1\",\r\n            \"sff-sf-data-plane-locator\": {\r\n              \"sf-dpl-name\": \"vxlan\",\r\n              \"sff-dpl-name\": \"dp1\"\r\n            },\r\n            \"failmode\": \"service-function-forwarder:open\"\r\n          },\r\n          {\r\n            \"name\": \"SF2\",\r\n            \"sff-sf-data-plane-locator\": {\r\n              \"sf-dpl-name\": \"vxlan\",\r\n              \"sff-dpl-name\": \"dp1\"\r\n            },\r\n            \"failmode\": \"service-function-forwarder:open\"\r\n          }\r\n        ],\r\n        \"ip-mgmt-address\": \"127.0.0.1\"\r\n      }\r\n    ]\r\n  }\r\n}\r\n"
+        payload = json.dumps(self.sff_json)
         headers = {
             'Authorization': 'Basic YWRtaW46YWRtaW4=',
             'Content-Type': 'application/json',
@@ -61,7 +58,7 @@ class SFC:
         response = requests.request("PUT", url, headers=headers, data=payload)
         print("[Create SFF]", response.status_code, response.text.encode('utf8'))
 
-    def _create_sfc(self):
+    def __create_sfc(self):
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/config/service-function-chain:service-function-chains/"
 
@@ -76,7 +73,7 @@ class SFC:
         response = requests.request("PUT", url, headers=headers, data=payload)
         print("[Create SFC]", response.status_code, response.text.encode('utf8'))
 
-    def _create_sfp(self):
+    def __create_sfp(self):
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/config/service-function-path:service-function-paths/"
 
@@ -90,7 +87,77 @@ class SFC:
         response = requests.request("PUT", url, headers=headers, data=payload)
         print("[Create SFP]", response.status_code, response.text.encode('utf8'))
 
-    def _get_rendered_sfp(self):
+    def __delete_sf(self):
+        url = "http://" + self.odl_addr + ":" + self.odl_port + \
+              "/restconf/config/service-function:service-functions/"
+
+        payload = {}
+        headers = {
+            'Authorization': 'Basic YWRtaW46YWRtaW4=',
+            'Cookie': 'JSESSIONID=15e0wlxsbftton2uplxb2cgiv'
+        }
+
+        response = requests.request("DELETE", url, headers=headers, data=payload)
+
+        print(response.text.encode('utf8'))
+
+    def __delete_node(self):
+        url = "http://" + self.odl_addr + ":" + self.odl_port + \
+              "/restconf/config/service-node:service-nodes"
+
+        payload = {}
+        headers = {
+            'Authorization': 'Basic YWRtaW46YWRtaW4=',
+            'Cookie': 'JSESSIONID=15e0wlxsbftton2uplxb2cgiv'
+        }
+
+        response = requests.request("DELETE", url, headers=headers, data=payload)
+
+        print(response.text.encode('utf8'))
+
+    def __delete_sff(self):
+        url = "http://" + self.odl_addr + ":" + self.odl_port + \
+              "/restconf/config/service-function-forwarder:service-function-forwarders/"
+
+        payload = {}
+        headers = {
+            'Authorization': 'Basic YWRtaW46YWRtaW4=',
+            'Cookie': 'JSESSIONID=15e0wlxsbftton2uplxb2cgiv'
+        }
+
+        response = requests.request("DELETE", url, headers=headers, data=payload)
+
+        print(response.text.encode('utf8'))
+
+    def __delete_sfc(self):
+        url = "http://" + self.odl_addr + ":" + self.odl_port + \
+              "/restconf/config/service-function-chain:service-function-chains/"
+
+        payload = {}
+        headers = {
+            'Authorization': 'Basic YWRtaW46YWRtaW4=',
+            'Cookie': 'JSESSIONID=1007xgm240jjertim4053v8mi'
+        }
+
+        response = requests.request("DELETE", url, headers=headers, data=payload)
+
+        print(response.text.encode('utf8'))
+
+    def __delete_sfp(self):
+        url = "http://" + self.odl_addr + ":" + self.odl_port + \
+              "/restconf/config/service-function-path:service-function-paths/"
+
+        payload = {}
+        headers = {
+            'Authorization': 'Basic YWRtaW46YWRtaW4=',
+            'Cookie': 'JSESSIONID=1007xgm240jjertim4053v8mi'
+        }
+
+        response = requests.request("DELETE", url, headers=headers, data=payload)
+
+        print(response.text.encode('utf8'))
+
+    def get_rendered_sfp(self):
         url = "http://" + self.odl_addr + ":" + self.odl_port + \
               "/restconf/operational/rendered-service-path:rendered-service-paths/"
 
@@ -103,32 +170,29 @@ class SFC:
         response = requests.request("GET", url, headers=headers, data=payload)
         print(response.text.encode('utf8'))
 
-    def __init_sf_json(self):
-        self.sf_json["service-functions"] = {}
-        self.sf_json["service-functions"]["service-function"] = []
+        json_format = json.loads(response.text.encode('utf8'))
+        for path in json_format["rendered-service-paths"]["rendered-service-path"]:
+            print("[Get SFP Rendered]", path["path-id"])
+
+        return json_format
 
     def add_sf(self, sf_name, ip, port, service_type, sff_name):
         self.sf_json["service-functions"]["service-function"].append({})
-        self.sf_json["service-functions"]["service-function"][-1]["name"] = sf_name
-        self.sf_json["service-functions"]["service-function"][-1]["rest-uri"] = "http://" + ip + ":5000"
-        self.sf_json["service-functions"]["service-function"][-1]["type"] = service_type
-        self.sf_json["service-functions"]["service-function"][-1]["ip-mgmt-address"] = ip
+        new_sf = self.sf_json["service-functions"]["service-function"][-1]
+        new_sf["name"] = sf_name
+        new_sf["rest-uri"] = "http://" + ip + ":5000"
+        new_sf["type"] = service_type
+        new_sf["ip-mgmt-address"] = ip
 
-        self.sf_json["service-functions"]["service-function"][-1]["sf-data-plane-locator"] = []
-        self.sf_json["service-functions"]["service-function"][-1]["sf-data-plane-locator"].append({})
-        self.sf_json["service-functions"]["service-function"][-1]["sf-data-plane-locator"][-1]["name"] = "vxlan"
-        self.sf_json["service-functions"]["service-function"][-1]["sf-data-plane-locator"][-1]["port"] = port
-        self.sf_json["service-functions"]["service-function"][-1]["sf-data-plane-locator"][-1]["ip"] = ip
-        self.sf_json["service-functions"]["service-function"][-1]["sf-data-plane-locator"][-1][
-            "service-function-forwarder"] = sff_name
-        self.sf_json["service-functions"]["service-function"][-1]["sf-data-plane-locator"][-1][
-            "transport"] = "service-locator:vxlan-gpe"
+        new_sf["sf-data-plane-locator"] = []
+        new_sf["sf-data-plane-locator"].append({})
+        new_sf["sf-data-plane-locator"][-1]["name"] = "vxlan"
+        new_sf["sf-data-plane-locator"][-1]["port"] = port
+        new_sf["sf-data-plane-locator"][-1]["ip"] = ip
+        new_sf["sf-data-plane-locator"][-1]["service-function-forwarder"] = sff_name
+        new_sf["sf-data-plane-locator"][-1]["transport"] = "service-locator:vxlan-gpe"
 
         print(json.dumps(self.sf_json))
-
-    def __init_service_node_json(self):
-        self.service_node_json["service-nodes"] = {}
-        self.service_node_json["service-nodes"]["service-node"] = []
 
     def add_service_node(self, node_name, sf_name, sff_name, ip):
         self.service_node_json["service-nodes"]["service-node"].append({})
@@ -139,64 +203,67 @@ class SFC:
 
         print(json.dumps(self.service_node_json))
 
-    def __init_sff_json(self):
-        self.sff_json["service-function-forwarders"] = {}
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"] = []
-
-    def add_sff(self, sff_name, node_name, ip, sff_port):
+    def add_sff(self, sff_name, node_name, ip, sff_port, sf_dict):
         self.sff_json["service-function-forwarders"]["service-function-forwarder"].append({})
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["name"] = sff_name
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["service-node"] = node_name
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1][
-            "rest-uri"] = "http://" + ip + ":5000"
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["ip-mgmt-address"] = ip
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["sff-data-plane-locator"] = []
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["sff-data-plane-locator"].append(
-            {})
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["sff-data-plane-locator"][-1][
-            "name"] = "dp1"
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["sff-data-plane-locator"][-1][
-            "data-plane-locator"] = {}
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["sff-data-plane-locator"][-1][
-            "data-plane-locator"]["port"] = sff_port
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["sff-data-plane-locator"][-1][
-            "data-plane-locator"]["ip"] = ip
-        self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]["sff-data-plane-locator"][-1][
-            "data-plane-locator"]["transport"] = "service-locator:vxlan-gpe"
+        new_sff = self.sff_json["service-function-forwarders"]["service-function-forwarder"][-1]
+
+        new_sff["name"] = sff_name
+        new_sff["service-node"] = node_name
+        new_sff["rest-uri"] = "http://" + ip + ":5000"
+        new_sff["ip-mgmt-address"] = ip
+        new_sff["sff-data-plane-locator"] = []
+        new_sff["sff-data-plane-locator"].append({})
+        new_sff["sff-data-plane-locator"][-1]["name"] = "dp1"
+        new_sff["sff-data-plane-locator"][-1]["data-plane-locator"] = {}
+        new_sff["sff-data-plane-locator"][-1]["data-plane-locator"]["port"] = sff_port
+        new_sff["sff-data-plane-locator"][-1]["data-plane-locator"]["ip"] = ip
+        new_sff["sff-data-plane-locator"][-1]["data-plane-locator"]["transport"] = "service-locator:vxlan-gpe"
+
+        # dictionary
+        new_sff[
+            "service-function-dictionary"] = []
+        for sf in sf_dict:
+            new_sff["service-function-dictionary"].append({})
+            new_sff["service-function-dictionary"][-1]["name"] = sf
+            new_sff["service-function-dictionary"][-1]["sff-sf-data-plane-locator"] = {"sf-dpl-name": "vxlan",
+                                                                                       "sff-dpl-name": "dp1"}
+            new_sff["service-function-dictionary"][-1]["failmode"] = "service-function-forwarder:open"
 
         print(json.dumps(self.sff_json))
-
-    def __init_sfc_json(self):
-        self.sfc_json["service-function-chains"] = {}
-        self.sfc_json["service-function-chains"]["service-function-chain"] = []
 
     def add_sfc(self, sfc_name, service_type_list):
         # 添加单个类别的服务到服务链
         self.sfc_json["service-function-chains"]["service-function-chain"].append({})
-        self.sfc_json["service-function-chains"]["service-function-chain"][-1]["name"] = sfc_name
-        self.sfc_json["service-function-chains"]["service-function-chain"][-1]["sfc-service-function"] = []
+        new_sfc = self.sfc_json["service-function-chains"]["service-function-chain"][-1]
+        new_sfc["name"] = sfc_name
+        new_sfc["sfc-service-function"] = []
 
         for index, service_type in enumerate(service_type_list):
-            self.sfc_json["service-function-chains"]["service-function-chain"][-1]["sfc-service-function"].append({})
-            self.sfc_json["service-function-chains"]["service-function-chain"][-1]["sfc-service-function"][-1][
-                "name"] = "chain-node-" + str(index + 1)
-            self.sfc_json["service-function-chains"]["service-function-chain"][-1]["sfc-service-function"][-1][
-                "type"] = service_type
+            new_sfc["sfc-service-function"].append({})
+            new_sfc["sfc-service-function"][-1]["name"] = "chain-node-" + str(index + 1)
+            new_sfc["sfc-service-function"][-1]["type"] = service_type
 
         print(json.dumps(self.sfc_json))
 
     def apply_config(self):
-        self._create_sf()
+        print("[SFC] Deleting old config.")
+        self.__delete_sfp()
+        self.__delete_sfc()
+        self.__delete_sff()
+        self.__delete_node()
+        self.__delete_sf()
+        print("[SFC] Applying new config.")
+        self.__create_sf()
         sleep(1)
-        self._create_node()
+        self.__create_node()
         sleep(1)
-        self._create_sff()
+        self.__create_sff()
         sleep(1)
-        self._create_sfc()
+        self.__create_sfc()
         sleep(1)
-        self._create_sfp()
-        sleep(10)
-        self._get_rendered_sfp()
+        self.__create_sfp()
+        sleep(5)
+        self.get_rendered_sfp()
 
 
 if __name__ == "__main__":
@@ -204,9 +271,10 @@ if __name__ == "__main__":
 
     sfc_connection.add_sf("SF1", "127.0.0.1", "10001", "firewall", "SFF1")
     sfc_connection.add_sf("SF2", "127.0.0.1", "10002", "dpi", "SFF1")
+    sfc_connection.add_sf("SF3", "127.0.0.1", "10003", "qos", "SFF1")
     sfc_connection.add_service_node("Node1", "SF1", "SFF1", "127.0.0.1")
     sfc_connection.add_service_node("Node2", "SF2", "SFF1", "127.0.0.1")
-    # sfc_connection.add_sff("SFF1", "Node1", "127.0.0.1", 4789)
-    sfc_connection.add_sfc("chain-1", ["dpi", "firewall"])
-
+    sfc_connection.add_service_node("Node3", "SF3", "SFF1", "127.0.0.1")
+    sfc_connection.add_sff("SFF1", "Node1", "127.0.0.1", 4789, ["SF1", "SF2", "SF3"])
+    sfc_connection.add_sfc("chain-1", ["dpi", "firewall", "qos"])
     sfc_connection.apply_config()
