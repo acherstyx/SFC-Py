@@ -145,7 +145,7 @@ class BasicService(object):
         if self.server_vxlan_values.next_protocol == GPE_NP_NSH:
             nsh_decode.decode_ethheader(data, offset, self.server_eth_before_nsh_values)
             if ((self.server_eth_before_nsh_values.ethertype0 == ETH_P_NSH_0) and
-               (self.server_eth_before_nsh_values.ethertype1 == ETH_P_NSH_1)):
+                    (self.server_eth_before_nsh_values.ethertype1 == ETH_P_NSH_1)):
                 self.is_eth_nsh = True
                 offset += 14
             else:
@@ -248,8 +248,9 @@ class BasicService(object):
         :type addr: tuple
 
         """
-        logger.info('%s service received packet from %s:', self.service_type, addr)
-        logger.info('%s %s', addr, binascii.hexlify(data).decode("utf-8"))
+        logger.info('[%s] service received packet from %s:', self.service_type, addr)
+        logger.info('[%s] the data in packet is: %s', self.service_type, data[60:].decode('utf-8'))
+
         packet = (data, addr)
         try:
             self.packet_queue.put_nowait(packet)
@@ -273,9 +274,10 @@ class BasicService(object):
         :type addr: tuple
 
         """
-        logger.info('%s service received packet from %s:', self.service_type, addr)
-        logger.info('%s %s', addr, binascii.hexlify(data).decode("utf-8"))
+        logger.info('[%s] service received packet from %s:', self.service_type, addr)
+        logger.info('[%s] the data in packet is: %s', self.service_type, data[60:].decode('utf-8'))
         rw_data = self._process_incoming_packet(data, addr)
+        rw_data += "[processed by {}]".format(self.service_type).encode('utf-8')
         if self.is_eth_nsh:
             offset = 8 + 14
         else:
@@ -289,7 +291,7 @@ class BasicService(object):
             addr_l[1] = 4789
             addr = tuple(addr_l)
             self.transport.sendto(rw_data, addr)
-            logger.info('%s: sending packets to %s', self.service_type, addr)
+            logger.info('[%s] sending packets to %s', self.service_type, addr)
         elif nsh_decode.is_trace_message(data, offset):
             # Add SF information to packet
             if self.server_base_values.service_index == self.server_trace_values.sil:
@@ -553,8 +555,12 @@ class MySffServer(BasicService):
                         # sys.exit()
 
                     logger.info("End of Chain. Sending packet to %s %s", bearing['d_addr'], bearing['d_port'])
-                    sock_raw.sendto(inner_packet, (bearing['d_addr'],
-                                                   bearing['d_port']))
+                    try:
+                        sock_raw.sendto(inner_packet, (bearing['d_addr'],
+                                                       bearing['d_port']))
+                    except AttributeError as e:
+                        logger.error("Stop sending package because of error.")
+
 
             # end processing as Service Index reaches zero (SI = 0)
             else:

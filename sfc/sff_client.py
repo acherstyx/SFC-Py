@@ -48,7 +48,6 @@ try:
 except ImportError:
     signal = None
 
-
 # Global flags used for indication of current packet processing status.
 
 PACKET_CHAIN = 0b00000000  # Packet needs more processing within this SFF
@@ -62,6 +61,7 @@ class MyNshBaseClass:
     """
     Base class common to all encap types
     """
+
     def __init__(self):
         self.server_vxlan_values = VXLANGPE()
         self.server_base_values = BASEHEADER()
@@ -75,6 +75,7 @@ class MyVxlanGpeNshIpClient(MyNshBaseClass):
     """
     Class for VXLAN_GPE + NSH + IP
     """
+
     def __init__(self, loop, encapsulate_header_values, base_header_values, ctx_header_values,
                  remote_sff_ip, remote_sff_port, inner_header, encapsulate_type='VXLAN-GPE/NSH/IPv4'):
         super().__init__()
@@ -101,7 +102,7 @@ class MyVxlanGpeNshIpClient(MyNshBaseClass):
         # TODO: 这里指定了测试发送的报文内的数据内容
         udp_inner_packet = build_udp_packet(self.inner_header.inner_src_ip, self.inner_header.inner_dest_ip,
                                             self.inner_header.inner_src_port,
-                                            self.inner_header.inner_dest_port, "test".encode('utf-8'))
+                                            self.inner_header.inner_dest_port, "abcdefg".encode('utf-8'))
         logger.info("Sending %s packet to SFF: %s", self.encapsulate_type, (self.remote_sff_ip, self.remote_sff_port))
         logger.debug("Packet dump: %s", binascii.hexlify(packet))
         # Send the packet
@@ -143,6 +144,7 @@ class MyVxlanGpeNshEthClient(MyNshBaseClass):
     """
     Class for VXLAN_GPE + NSH + Ethernet + IP
     """
+
     def __init__(self, loop, ethernet_values, encapsulate_header_values, base_header_values,
                  ctx_header_values, remote_sff_ip, remote_sff_port, inner_header,
                  encapsulate_type='VXLAN-GPE/NSH/Ethernet'):
@@ -215,6 +217,7 @@ class MyVxlanNshEthClient(MyNshBaseClass):
     Class for VXLAN + NSH + Ethernet + IP. Used when sending
     packet to OpenvsWitch with nsh-v8 patch
     """
+
     def __init__(self, loop, ethernet_values, encapsulate_header_values, base_header_values,
                  ctx_header_values, remote_sff_ip, remote_sff_port, inner_header,
                  encapsulate_type='VXLAN/NSH/Ethernet'):
@@ -291,6 +294,7 @@ class MyGreNshEthClient:
     """
     This most likely does not work since it has not been tested in quite awhile
     """
+
     def __init__(self, loop, encapsulate_type, encapsulate_header_values, base_header_values, ctx_header_values,
                  dest_addr, dest_port):
         self.transport = None
@@ -701,4 +705,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sfp_id = input("Specify a sfp ID: ")
+    main(sys.argv[1:] + ["--sfp-id", sfp_id])
