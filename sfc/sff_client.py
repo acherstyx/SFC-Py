@@ -77,7 +77,7 @@ class MyVxlanGpeNshIpClient(MyNshBaseClass):
     """
 
     def __init__(self, loop, encapsulate_header_values, base_header_values, ctx_header_values,
-                 remote_sff_ip, remote_sff_port, inner_header, encapsulate_type='VXLAN-GPE/NSH/IPv4'):
+                 remote_sff_ip, remote_sff_port, inner_header, encapsulate_type='VXLAN-GPE/NSH/IPv4', message='ping!'):
         super().__init__()
         self.transport = None
         self.loop = loop
@@ -88,6 +88,7 @@ class MyVxlanGpeNshIpClient(MyNshBaseClass):
         self.remote_sff_port = remote_sff_port
         self.inner_header = inner_header
         self.encapsulate_type = encapsulate_type
+        self.message = message
 
     def alarm_handler(self, signum=None, frame=None):
         logger.error("No response from %s:%d", self.remote_sff_ip, self.remote_sff_port)
@@ -102,7 +103,7 @@ class MyVxlanGpeNshIpClient(MyNshBaseClass):
         # TODO: 这里指定了测试发送的报文内的数据内容
         udp_inner_packet = build_udp_packet(self.inner_header.inner_src_ip, self.inner_header.inner_dest_ip,
                                             self.inner_header.inner_src_port,
-                                            self.inner_header.inner_dest_port, "abcdefg".encode('utf-8'))
+                                            self.inner_header.inner_dest_port, self.message.encode('utf-8'))
         logger.info("Sending %s packet to SFF: %s", self.encapsulate_type, (self.remote_sff_ip, self.remote_sff_port))
         logger.debug("Packet dump: %s", binascii.hexlify(packet))
         # Send the packet
@@ -420,7 +421,7 @@ def start_client(loop, myaddr, dest_addr, udpclient):
     loop.close()
 
 
-def main(argv):
+def main(argv, message):
     """
     Example:
     python3.4 sff_client.py --remote-sff-ip 10.0.1.41 --remote-sff-port 4789 --sfp-id 1 --sfp-index 255
@@ -435,6 +436,7 @@ def main(argv):
     python3.4 sff_client.py --remote-sff-ip 10.0.1.41 --remote-sff-port 4789 --sfp-id 1 --sfp-index 255 \
                             --trace-req --num-trace-hops 1
     :param argv:
+    :param message:
     :return:
     """
 
@@ -655,7 +657,8 @@ def main(argv):
             base_header_values.next_protocol = NSH_NEXT_PROTO_IPV4
 
             udpclient = MyVxlanGpeNshIpClient(loop, vxlan_header_values, base_header_values,
-                                              ctx_values, remote_sff_ip, int(remote_sff_port), inner_header)
+                                              ctx_values, remote_sff_ip, int(remote_sff_port), inner_header,
+                                              message=message)
             start_client(loop, (local_ip, local_port), (remote_sff_ip, remote_sff_port), udpclient)
 
         elif encapsulate == 'gre-nsh-ethernet':
@@ -706,4 +709,4 @@ def main(argv):
 
 if __name__ == "__main__":
     sfp_id = input("Specify a sfp ID: ")
-    main(sys.argv[1:] + ["--sfp-id", sfp_id])
+    main(sys.argv[1:] + ["--sfp-id", sfp_id], "123")
