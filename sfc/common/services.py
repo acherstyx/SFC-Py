@@ -549,17 +549,25 @@ class MySffServer(BasicService):
                             inner_packet = rw_data[payload_start_index + IPV4_HEADER_LEN_BYTES:]
                             sock_raw = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_UDP)
                         else:
-                            sock_raw = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+                            # sock_raw = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
+                            sock_raw = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     except socket.error as msg:
-                        logger.error("Socket could not be created. Error Code : %s", msg)
+                        logger.error("[SFF] Socket could not be created. Error Code : %s", msg)
                         # sys.exit()
 
-                    logger.info("End of Chain. Sending packet to %s %s", bearing['d_addr'], bearing['d_port'])
+                    logger.info("[SFF] End of Chain. Sending packet to %s %s", bearing['d_addr'], bearing['d_port'])
                     try:
-                        sock_raw.sendto(inner_packet, (bearing['d_addr'],
-                                                       bearing['d_port']))
+                        sock_raw.sendto(inner_packet[:], (bearing['d_addr'],
+                                                            int(bearing['d_port'])))
                     except AttributeError as e:
-                        logger.error("Stop sending package because of error.")
+                        logger.error("[SFF] Stop sending package because of error. Parameters: %s %s %s",
+                                     socket.AF_INET,
+                                     socket.SOCK_RAW,
+                                     platform.system())
+                    except BrokenPipeError as e:
+                        logger.error("[SFF] Stop sending package because of Broken pipe. IP: %s Port: %s",
+                                     bearing['d_addr'],
+                                     int(bearing['d_port']))
 
 
             # end processing as Service Index reaches zero (SI = 0)
