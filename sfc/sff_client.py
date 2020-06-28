@@ -24,6 +24,7 @@ from sfc.nsh.decode import decode_baseheader, decode_contextheader, decode_trace
 
 from sfc.nsh.encode import build_nsh_eth_header, build_nsh_header, build_nsh_trace_header
 from sfc.nsh.encode import build_trace_req_header, build_udp_packet, process_context_headers
+import sfc.nsh.decode as decode
 
 # fix Python 3 relative imports inside packages
 # CREDITS: http://stackoverflow.com/a/6655098/4183498
@@ -105,8 +106,9 @@ class MyVxlanGpeNshIpClient(MyNshBaseClass):
                                             self.inner_header.inner_src_port,
                                             self.inner_header.inner_dest_port, self.message.encode('utf-8'))
         logger.info("Sending %s packet to SFF: %s", self.encapsulate_type, (self.remote_sff_ip, self.remote_sff_port))
-        logger.debug("Packet dump: %s", binascii.hexlify(packet))
+        logger.info("Packet dump: %s", binascii.hexlify(packet))
         # Send the packet
+
         signal.signal(signal.SIGALRM, self.alarm_handler)
         signal.alarm(2)
         try:
@@ -122,9 +124,10 @@ class MyVxlanGpeNshIpClient(MyNshBaseClass):
         logger.info("Received packet from SFF: %s", addr)
         logger.debug("Packet dump: %s", binascii.hexlify(data))
         # Decode all the headers
-        decode_vxlan(data, self.server_vxlan_values)
-        decode_baseheader(data, self.server_base_values)
-        decode_contextheader(data, self.server_ctx_values)
+        decode.logger = logger
+        decode_vxlan(data, 0, self.server_vxlan_values)
+        decode_baseheader(data, 0, self.server_base_values)
+        decode_contextheader(data, 0, self.server_ctx_values)
         self.loop.stop()
 
     @staticmethod
