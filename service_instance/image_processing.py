@@ -54,29 +54,36 @@ def base64_histogram(image_base64):
     buffer = BytesIO()
     plt.savefig(buffer)
     str_encode = base64.b64encode(buffer.getvalue())
+    plt.cla()
 
     return str_encode
 
 
 def view_base64_image(image_in_base64):
+    plt.cla()
     org_image = base64.b64decode(image_in_base64)
     image_in = cv2.imdecode(np.frombuffer(org_image, np.uint8), cv2.IMREAD_COLOR)
-    cv2.imshow("base64_image_view", image_in)
-    cv2.waitKey()
+    plt.imshow(image_in[:, :, ::-1])
+    # cv2.waitKey()
+    plt.show()
+
+
+def load_image_to_base64(filepath):
+    b_image = open(filepath, 'rb')
+    image_raw = b_image.read()
+
+    return base64.b64encode(image_raw)
 
 
 if __name__ == '__main__':
     image = "../image_sample.jpg"
-    test_image = open(image, "rb")
-    test_image_raw = test_image.read()
-
-    test_image_in_base64 = base64.b64encode(test_image_raw)
+    test_image_in_base64 = load_image_to_base64(image)
     print(test_image_in_base64)
 
     his = base64_histogram(test_image_in_base64)
     print(his)
 
-    # view_base64_image(his)
+    view_base64_image(his)
 
     image = __decode_base64_image(test_image_in_base64)
     image = __encode_image_to_base64(image)

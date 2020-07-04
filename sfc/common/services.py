@@ -26,6 +26,10 @@ from ..nsh import decode as nsh_decode
 from ..nsh.encode import add_sf_to_trace_pkt
 from ..nsh.service_index import process_service_index
 
+from service_instance.image_processing import *
+
+# from service_instance.performance_statistic import *
+
 __author__ = "Jim Guichard, Reinaldo Penno"
 __copyright__ = "Copyright(c) 2014, Cisco Systems, Inc."
 __version__ = "0.3"
@@ -57,6 +61,7 @@ IDS = 'ids'
 SF = 'sf'
 SFF = 'sff'
 CUDP = 'cudp'
+HISTOGRAM = 'histogram'
 
 # For VxLAN-gpe
 GPE_NP_NSH = 0x4
@@ -86,6 +91,8 @@ def find_service(service_type):
     elif service_type == QOS or service_type == IDS:
         # return a generic service for currently unimplemented services
         return MyService
+    elif service_type == HISTOGRAM:
+        return MyImageHistogramService
     else:
         raise ValueError('Service "%s" not supported' % service_type)
 
@@ -246,10 +253,9 @@ class BasicService(object):
         :type data: bytes
         :param addr: IP address and port to which data are passed
         :type addr: tuple
-
         """
-        logger.info('[%s] service received packet from %s:', self.service_type, addr)
-        logger.info('[%s] the data in packet is: %s', self.service_type, data[60:].decode('utf-8'))
+        # logger.info('[%s] service received packet from %s:', self.service_type, addr)
+        # logger.info('[%s] the data in packet is: %s', self.service_type, data[60:].decode('utf-8'))
 
         packet = (data, addr)
         try:
@@ -272,12 +278,12 @@ class BasicService(object):
         :type data: bytes
         :param addr: IP address and port to which data are passed
         :type addr: tuple
-
         """
-        logger.info('[%s] service received packet from %s:', self.service_type, addr)
-        logger.info('[%s] the data in packet is: %s', self.service_type, data[60:].decode('utf-8'))
+        # logger.info('[%s] service received packet from %s:', self.service_type, addr)
+        # logger.info('[%s] the data in packet is: %s', self.service_type, data[60:].decode('utf-8'))
         rw_data = self._process_incoming_packet(data, addr)
-        rw_data += "[processed by {}]".format(self.service_type).encode('utf-8')
+        # TODO: 按照这里的处理rw_data可以修改服务链中的报文内容
+        # rw_data += "[processed by {}]".format(self.service_type).encode('utf-8')
         if self.is_eth_nsh:
             offset = 8 + 14
         else:
@@ -291,7 +297,7 @@ class BasicService(object):
             addr_l[1] = 4789
             addr = tuple(addr_l)
             self.transport.sendto(rw_data, addr)
-            logger.info('[%s] sending packets to %s', self.service_type, addr)
+            # logger.info('[%s] sending packets to %s', self.service_type, addr)
         elif nsh_decode.is_trace_message(data, offset):
             # Add SF information to packet
             if self.server_base_values.service_index == self.server_trace_values.sil:
@@ -558,7 +564,7 @@ class MySffServer(BasicService):
                     logger.info("[SFF] End of Chain. Sending packet to %s %s", bearing['d_addr'], bearing['d_port'])
                     try:
                         sock_raw.sendto(inner_packet[:], (bearing['d_addr'],
-                                                            int(bearing['d_port'])))
+                                                          int(bearing['d_port'])))
                     except AttributeError as e:
                         logger.error("[SFF] Stop sending package because of error. Parameters: %s %s %s",
                                      socket.AF_INET,
@@ -616,3 +622,46 @@ class MySffServer(BasicService):
     @staticmethod
     def error_received(exc):
         logger.error('Error received:', exc)
+
+
+# 新增的自定义服务
+class MyImageHistogramService(BasicService):
+    def __init__(self, loop):
+        super(MyImageHistogramService, self).__init__(loop)
+
+        self.service_type = HISTOGRAM
+        self.image_buffer = {}
+
+    # override processing dg
+    def process_datagram(self, data, addr):
+        # logger.info('[%s] service received packet from %s:', self.service_type, addr)
+        # logger.info('[%s] the data in packet (before) is: %s', self.service_type, data[60:].decode('utf-8'))
+
+        self.__process_image(data[60:].decode('utf-8'))
+
+    def __process_image(self, msg: str):
+        split = msg.split(' ')
+        serial = split[0]
+        index = int(split[1])
+        image_part = split[2]
+        try:
+            self.image_buffer[serial][index] = image_part
+        except KeyError:
+            self.image_buffer[serial] = ["" for _ in range(index)]
+        # logger.info("ImageProcessing: " + str(index))
+
+        if index == 0:
+            try:
+                image_full = ""
+                while True:
+                    try:
+                        image_full += self.image_buffer[serial][index]
+                        index += 1
+                    except IndexError:
+                        break
+
+                histogram = base64_histogram(image_full.encode('utf-8'))
+                view_base64_image(histogram)
+                logger.info("[%s] Successfully generate histogram for image serial %s.", self.service_type, serial)
+            except Exception as e:
+                logger.info("[%s] Generate histogram for serial %s failed.", self.service_type, serial)
