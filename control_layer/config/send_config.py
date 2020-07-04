@@ -271,10 +271,10 @@ if __name__ == "__main__":
 
     sfc_connection.add_sf("SF1", "127.0.0.1", "10001", "firewall", "SFF1")
     sfc_connection.add_sf("SF2", "127.0.0.1", "10002", "dpi", "SFF1")
-    sfc_connection.add_sf("SF3", "127.0.0.1", "10003", "qos", "SFF1")
+    sfc_connection.add_sf("SF3", "127.0.0.1", "10003", "histogram", "SFF1")
     sfc_connection.add_service_node("Node1", "SF1", "SFF1", "127.0.0.1")
     sfc_connection.add_service_node("Node2", "SF2", "SFF1", "127.0.0.1")
     sfc_connection.add_service_node("Node3", "SF3", "SFF1", "127.0.0.1")
     sfc_connection.add_sff("SFF1", "Node1", "127.0.0.1", 4789, ["SF1", "SF2", "SF3"])
-    sfc_connection.add_sfc("chain-1", ["dpi", "firewall", "qos"])
+    sfc_connection.add_sfc("chain-1", ["dpi", "firewall", "histogram"])
     sfc_connection.apply_config()

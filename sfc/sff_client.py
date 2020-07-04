@@ -141,7 +141,10 @@ class MyVxlanGpeNshIpClient(MyNshBaseClass):
 
     @staticmethod
     def error_received(exc):
-        logger.error('Error received:', exc)
+        try:
+            logger.error('Error received:', exc)
+        except OSError:
+            pass
 
 
 class MyVxlanGpeNshEthClient(MyNshBaseClass):
