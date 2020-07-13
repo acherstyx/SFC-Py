@@ -8,7 +8,7 @@ from io import BytesIO
 from PIL import Image
 
 
-def __decode_base64_image(image_in_base64):
+def decode_base64_image(image_in_base64):
     """
     from base64 string to np.array
     :param image_in_base64:
@@ -18,7 +18,7 @@ def __decode_base64_image(image_in_base64):
     return cv2.imdecode(np.frombuffer(b_image, np.uint8), cv2.IMREAD_COLOR)
 
 
-def __encode_image_to_base64(numpy_image):
+def encode_image_to_base64(numpy_image):
     """
     from np.array format to base64 string
     :param numpy_image:
@@ -34,7 +34,7 @@ def __encode_image_to_base64(numpy_image):
 
 
 def base64_histogram(image_base64):
-    image_in = __decode_base64_image(image_base64)
+    image_in = decode_base64_image(image_base64)
 
     fig = Figure()
     canvas = FigureCanvasAgg(fig)
@@ -85,9 +85,9 @@ if __name__ == '__main__':
 
     view_base64_image(his)
 
-    image = __decode_base64_image(test_image_in_base64)
-    image = __encode_image_to_base64(image)
-    image = __decode_base64_image(image)
-    image = __encode_image_to_base64(image)
+    image = decode_base64_image(test_image_in_base64)
+    image = encode_image_to_base64(image)
+    image = decode_base64_image(image)
+    image = encode_image_to_base64(image)
 
     view_base64_image(image)
