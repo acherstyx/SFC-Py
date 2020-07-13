@@ -26,7 +26,8 @@ from ..nsh import decode as nsh_decode
 from ..nsh.encode import add_sf_to_trace_pkt
 from ..nsh.service_index import process_service_index
 
-from service_instance.image_processing import *
+from function.image_processing import *
+from service_instance.service_host import ServiceHost
 
 # from service_instance.performance_statistic import *
 
@@ -62,6 +63,7 @@ SF = 'sf'
 SFF = 'sff'
 CUDP = 'cudp'
 HISTOGRAM = 'histogram'
+RELIABLE = 'reliable'
 
 # For VxLAN-gpe
 GPE_NP_NSH = 0x4
@@ -93,6 +95,8 @@ def find_service(service_type):
         return MyService
     elif service_type == HISTOGRAM:
         return MyImageHistogramService
+    elif service_type == RELIABLE:
+        return MyReliableConnectionService
     else:
         raise ValueError('Service "%s" not supported' % service_type)
 
@@ -665,3 +669,26 @@ class MyImageHistogramService(BasicService):
                 logger.info("[%s] Successfully generate histogram for image serial %s.", self.service_type, serial)
             except Exception as e:
                 logger.info("[%s] Generate histogram for serial %s failed.", self.service_type, serial)
+
+
+class MyReliableConnectionService(BasicService):
+    def __init__(self, loop):
+        super(MyReliableConnectionService, self).__init__(loop)
+
+        self.service_type = RELIABLE
+
+        self.host = ServiceHost()
+
+    def process_datagram(self, data, addr):
+        self.store_and_process(data[60:], addr)
+
+    def store_and_process(self, data, addr):
+        serial = self.host.get_serial(data)
+
+        end = self.host.buffer(flow_id=serial,
+                               recv_buffer=data,
+                               ack_address=str(addr[0]))
+        if end:
+            logger.info("[%s] Receive full message with serial %s!!!", self.service_type, serial)
+        else:
+            logger.info("[%s] Receive part message with serial %s", self.service_type, serial)

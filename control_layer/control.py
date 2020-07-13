@@ -1,5 +1,5 @@
 from control_layer.db.get_config import SFCDatabase
-from control_layer.send_config import SFC
+from control_layer.config.send_config import SFC
 
 
 def load_config(db_conn: SFCDatabase, sfc):

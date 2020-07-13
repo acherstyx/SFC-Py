@@ -1,26 +1,19 @@
-from service_instance.image_processing import *
+from function.image_processing import *
 import random as rnd
-from time import sleep
 
-import os
 import sys
 import logging
-import binascii
 import platform
 import time
 import socket
-import ipaddress
 import getopt
 import asyncio
 
-from sfc.nsh.common import BASEHEADER, CONTEXTHEADER, ETHERNET_ADDR_SIZE, ETHHEADER, GREHEADER, InnerHeader
-from sfc.nsh.common import NSH_NEXT_PROTO_ETH, NSH_NEXT_PROTO_IPV4, OAM_TRACE_REQ_TYPE, TRACEREQHEADER, VXLAN, VXLANGPE
+from sfc.nsh.common import BASEHEADER, CONTEXTHEADER, ETHERNET_ADDR_SIZE, InnerHeader
+from sfc.nsh.common import NSH_NEXT_PROTO_ETH, NSH_NEXT_PROTO_IPV4, VXLANGPE
 
-from sfc.nsh.decode import decode_baseheader, decode_contextheader, decode_trace_resp, decode_vxlan
-
-from sfc.nsh.encode import build_nsh_eth_header, build_nsh_header, build_nsh_trace_header
-from sfc.nsh.encode import build_trace_req_header, build_udp_packet, process_context_headers
-import sfc.nsh.decode as decode
+from sfc.nsh.encode import build_nsh_header
+from sfc.nsh.encode import build_udp_packet, process_context_headers
 
 try:
     import signal
@@ -60,7 +53,7 @@ class ClientConnection:
         index = int(len(msg) / 1024)
 
         while True:
-            print(index)
+            print(index, end=" ")
 
             if len(msg) > 1024:
                 self.send(str(serial_no) + " " + str(index) + " " + msg[-1024:])
@@ -72,16 +65,27 @@ class ClientConnection:
             index -= 1
 
 
-def sff_client(argv, message='ping!'):
-    def handler(signum=None, frame=None):
-        print("Signal handler called with signal {}".format(signum))
-        loop.call_soon_threadsafe(loop.stop)
-        time.sleep(1)
-        loop.call_soon_threadsafe(loop.close)
-        time.sleep(1)  # here check if process is done
-        print("Wait done")
-        sys.exit(0)
+def handler(signum=None, frame=None):
+    loop = asyncio.new_event_loop()
+    print("Signal handler called with signal {}".format(signum))
+    loop.call_soon_threadsafe(loop.stop)
+    time.sleep(1)
+    loop.call_soon_threadsafe(loop.close)
+    time.sleep(1)  # here check if process is done
+    print("Wait done")
+    sys.exit(0)
 
+
+for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGABRT]:
+    signal.signal(sig, handler)
+
+# Can not install SIGHUP in Windows
+if platform.system() in ["Linux", "Darwin"]:
+    signal.signal(signal.SIGHUP, handler)
+    signal.signal(signal.SIGQUIT, handler)
+
+
+def sff_client(argv, message='ping!'):
     # global base_values
 
     # Some Good defaults
@@ -218,14 +222,10 @@ def sff_client(argv, message='ping!'):
             ctx4 = arg
             continue
 
-    loop = asyncio.get_event_loop()
-    for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGABRT]:
-        signal.signal(sig, handler)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
-    # Can not install SIGHUP in Windows
-    if platform.system() in ["Linux", "Darwin"]:
-        signal.signal(signal.SIGHUP, handler)
-        signal.signal(signal.SIGQUIT, handler)
+    loop = asyncio.get_event_loop()
 
     # Common initializations for all encapsulations types
     base_header_values = BASEHEADER(service_path=int(sfp_id), service_index=int(sfp_index),
@@ -251,7 +251,7 @@ def sff_client(argv, message='ping!'):
                                         inner_header.inner_dest_ip,
                                         inner_src_port,
                                         inner_dest_port,
-                                        message.encode('utf-8'))
+                                        message)
 
     transport = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -278,4 +278,9 @@ if __name__ == "__main__":
     b64_image = load_image_to_base64("../../image_sample.jpg")
     print("Image:", b64_image.decode('utf-8'))
     print("Base64 string length:", len(b64_image))
-    connection.send_long(b64_image.decode('utf-8'))
+
+    from service_instance.service_host import ServiceHost
+
+    host = ServiceHost
+
+    host.sendto(b64_image, connection.send)
