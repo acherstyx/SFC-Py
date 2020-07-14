@@ -32,6 +32,7 @@ class ServiceHost:
 
             if str(flow_id) not in self.__buffer or str(serial) not in self.__buffer[str(flow_id)]:
                 return False
+
             return True
 
         serial = int(recv_buffer.split(b'_')[0])
@@ -46,7 +47,9 @@ class ServiceHost:
             self.__buffer[str(flow_id)] = {}
 
         try:
-            self.__buffer[str(flow_id)][str(serial)].append((pos, data))
+            buffered_pos = [x[0] for x in self.__buffer[str(flow_id)][str(serial)]]
+            if pos not in buffered_pos:
+                self.__buffer[str(flow_id)][str(serial)].append((pos, data))
         except KeyError:
             self.__buffer[str(flow_id)][str(serial)] = [(pos, data), ]
 
@@ -55,18 +58,28 @@ class ServiceHost:
     def clean(self):
         self.__buffer = {}
 
-    def fetch(self, flow_id):
+    def fetch(self, flow_id, serial):
         """
         按先后次序取出流对应的数据，并且拼接成完整的数据。
+        取出之后数据会从缓存中清除。
+        @param serial:
         @param flow_id:
         @return:
         """
-        data_list = self.__buffer[str(flow_id)]
-        data = ""
-        for pkt_data in data_list:
+
+        def take_sort_elem(pkt):
+            return int(pkt[0])
+
+        data_list = self.__buffer[str(flow_id)][str(serial)]
+        # data_list: list
+        data_list.sort(key=take_sort_elem)
+
+        data = b""
+        for pos, pkt_data in data_list:
+            print(pos, pkt_data)
             data = data + pkt_data
 
-        self.__buffer.pop(str(flow_id))
+        self.__buffer[str(flow_id)].pop(str(serial))
         return data
 
     @staticmethod
@@ -91,7 +104,7 @@ class ServiceHost:
             while position:  # send: [serial]_[pos]_data
                 for pos in position:
                     send_func(f"{serial[0]}_{pos}_".encode() + msg[pos:pos + SEND_BUFFER_SIZE])
-                    sleep(0.1)
+                sleep(0.1)
 
             while serial:  # send: over_[serial]
                 send_func(f'over_{serial[0]}'.encode())

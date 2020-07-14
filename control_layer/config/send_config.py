@@ -263,7 +263,7 @@ class SFC:
         self.__create_sfc()
         sleep(0.5)
         self.__create_sfp()
-        sleep(5)
+        sleep(2)
         self.get_rendered_sfp()
 
 

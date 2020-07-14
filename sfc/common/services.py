@@ -690,5 +690,9 @@ class MyReliableConnectionService(BasicService):
                                ack_address=str(addr[0]))
         if end:
             logger.info("[%s] Receive full message with serial %s!!!", self.service_type, serial)
+            flow_data = self.host.fetch(serial, serial)
+            flow_image = decode_base64_image(flow_data)
+            plt.imshow(flow_image)
+            plt.show()
         else:
             logger.info("[%s] Receive part message with serial %s", self.service_type, serial)
