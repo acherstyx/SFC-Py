@@ -694,5 +694,6 @@ class MyReliableConnectionService(BasicService):
             flow_image = decode_base64_image(flow_data)
             plt.imshow(flow_image)
             plt.show()
+
         else:
             logger.info("[%s] Receive part message with serial %s", self.service_type, serial)

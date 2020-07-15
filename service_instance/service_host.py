@@ -4,7 +4,7 @@ from time import sleep
 import socket
 import random
 
-SEND_BUFFER_SIZE = 1024
+SEND_BUFFER_SIZE = 1024 * 4
 RECV_BUFFER_SIZE = 1024 * 1024
 DEBUG = True
 
@@ -76,7 +76,8 @@ class ServiceHost:
 
         data = b""
         for pos, pkt_data in data_list:
-            print(pos, pkt_data)
+            if DEBUG:
+                print(pos, pkt_data)
             data = data + pkt_data
 
         self.__buffer[str(flow_id)].pop(str(serial))
@@ -104,7 +105,7 @@ class ServiceHost:
             while position:  # send: [serial]_[pos]_data
                 for pos in position:
                     send_func(f"{serial[0]}_{pos}_".encode() + msg[pos:pos + SEND_BUFFER_SIZE])
-                sleep(0.1)
+                # sleep(0.1)
 
             while serial:  # send: over_[serial]
                 send_func(f'over_{serial[0]}'.encode())
