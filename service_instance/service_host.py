@@ -7,19 +7,18 @@ import random
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
-SEND_BUFFER_SIZE = 1024 * 40
+SEND_BUFFER_SIZE = 1024 * 4
 RECV_BUFFER_SIZE = 1024 * 1024
 DEBUG = True
-TIME_OUT = 1
+TIME_OUT = 5
 
 
 class ServiceHost:
     def __init__(self):
         self.__buffer = {}
 
-    def buffer(self, flow_id: str, recv_buffer: bytes, ack_address: str) -> bool:
+    def buffer(self, flow_id: str, recv_buffer: bytes, ack_address) -> bool:
         """
         将收到的数据按flow id分开存储起来，flow id作为不同应用的数据的标识
 
@@ -32,10 +31,11 @@ class ServiceHost:
 
         if recv_buffer.startswith(b'over_'):
             serial = int(recv_buffer.split(b'_')[1])
-            sock_ack = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            ack_address = (ack_address, serial)
-            sock_ack.sendto(f'{serial}_over'.encode(), ack_address)
-
+            if ack_address is not None:
+                sock_ack = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                ack_address = (ack_address, serial)
+                sock_ack.sendto(f'{serial}_over'.encode(), ack_address)
+                sock_ack.close()
             if str(flow_id) not in self.__buffer or str(serial) not in self.__buffer[str(flow_id)]:
                 return False
 
@@ -45,10 +45,11 @@ class ServiceHost:
         pos = int(recv_buffer.split(b'_')[1])
         data = recv_buffer.split(b'_', maxsplit=3)[2]
 
-        sock_ack = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        ack_address = (ack_address, serial)
-        sock_ack.sendto(f'{serial}_{pos}_ack'.encode(), ack_address)
-        logger.debug("ACK reply is send to %s:%s", ack_address, serial)
+        if ack_address is not None:
+            sock_ack = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            ack_address = (ack_address, serial)
+            sock_ack.sendto(f'{serial}_{pos}_ack'.encode(), ack_address)
+            logger.debug("ACK reply is send to %s:%s", ack_address, serial)
 
         if str(flow_id) not in self.__buffer:
             self.__buffer[str(flow_id)] = {}
@@ -84,7 +85,7 @@ class ServiceHost:
         data = b""
         for pos, pkt_data in data_list:
             if DEBUG:
-                print(pos, pkt_data)
+                logger.debug(f"{pos}, {pkt_data}")
             data = data + pkt_data
 
         self.__buffer[str(flow_id)].pop(str(serial))
@@ -104,7 +105,7 @@ class ServiceHost:
         def sendto(_msg):
             msg_size = len(_msg)
 
-            for start in range(msg_size // SEND_BUFFER_SIZE):
+            for start in range(msg_size // SEND_BUFFER_SIZE + 1):
                 position.append(start * SEND_BUFFER_SIZE)
 
             e.set()
@@ -120,25 +121,25 @@ class ServiceHost:
                 sleep(0.1)
                 # time out
                 if time.time() - start > TIME_OUT:
-                    logger.warning("Time out for sending message: %s", msg)
                     break
 
             while serial:  # send: over_[serial]
-                send_func(f'over_{serial[0]}'.encode())
                 if time.time() - start > TIME_OUT:
-                    logger.warning("Time out for sending message: %s", msg)
+                    logger.warning("Time out for sending message: %s", msg[:min(30, len(msg))])
                     break
+                send_func(f'over_{serial[0]}'.encode())
 
         def recv_ack():
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.bind(("", serial[0]))
             if DEBUG:
                 logger.info("Start receiving ACK...")
 
             while position:  # ack: [serial]_[pos]_ack
                 data, _ = sock.recvfrom(1024)
                 ack_serial = int(data.split(b'_')[0])
-                pos = int(data.split(b'_')[1])
+                try:
+                    pos = int(data.split(b'_')[1])
+                except ValueError as e:
+                    logger.warning("Catch ValueError: %s", e)
                 if DEBUG:
                     logger.debug("Receive ack: %s %s", ack_serial, pos)
                 if ack_serial == serial[0] and pos in position:
@@ -153,7 +154,17 @@ class ServiceHost:
             sock.close()
 
         position = []
-        serial = [random.randint(1000, 65500)]
+
+        sock = None
+        for i in range(10):
+            try:
+                serial = [random.randint(1000, 65500)]
+                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                sock.bind(("", serial[0]))
+                break
+            except OSError:
+                pass
+
         e = Event()
         e.clear()
 
@@ -166,6 +177,7 @@ class ServiceHost:
         t2 = Thread(target=recv_ack)
         t2.start()
         t1.join()
+        sock.close()
 
     @staticmethod
     def get_serial(recv_buffer):

@@ -42,7 +42,6 @@ All supported services
 """
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.WARNING)
 
 #: Global flags used for indication of current packet processing status
 # Packet needs more processing within this SFF
@@ -705,7 +704,8 @@ class MyReliableConnectionService(BasicService):
             flow_image = decode_base64_image(flow_data)
             # plt.imshow(flow_image)
             # plt.show()
-            send_thread = Thread(target=self.host.sendto,args=(flow_data, self.send))
+            flow_data = base64_histogram(flow_data)
+            send_thread = Thread(target=self.host.sendto, args=(flow_data, self.send))
             send_thread.start()
         else:
             logger.info("[%s] Receive part message with serial %s", self.service_type, serial)

@@ -23,7 +23,7 @@ except ImportError:
     signal = None
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging
+logger = logging.getLogger(__name__)
 
 
 class ClientConnection:
@@ -248,12 +248,14 @@ def sff_client(argv, message='ping!'):
     logger.debug("Client sending packet to %s", (remote_sff_ip, int(remote_sff_port)))
     try:
         transport.sendto(packet + udp_inner_packet, (remote_sff_ip, int(remote_sff_port)))
+        transport.close()
     except socket.error as msg:
         logger.error('Failed to send packet. Error Code : ' + str(msg))
+        transport.close()
         sys.exit()
     except Exception as e:
         logger.error("Error processing client: %s" % str(e))
-    transport.close()
+        transport.close()
 
 
 if __name__ == "__main__":

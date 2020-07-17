@@ -52,8 +52,9 @@ def base64_histogram(image_base64):
     canvas.draw()
 
     buffer = BytesIO()
-    plt.savefig(buffer)
+    plt.savefig(buffer, format="JPEG")
     str_encode = base64.b64encode(buffer.getvalue())
+
     plt.cla()
 
     return str_encode
@@ -76,7 +77,7 @@ def load_image_to_base64(filepath):
 
 
 if __name__ == '__main__':
-    image = "../image_sample.jpg"
+    image = "image_sample.jpg"
     test_image_in_base64 = load_image_to_base64(image)
     print(test_image_in_base64)
 

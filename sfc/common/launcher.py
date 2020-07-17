@@ -15,22 +15,17 @@ from threading import Thread
 from .sfc_globals import sfc_globals
 from .services import SF, SFF, CUDP, find_service
 
-
 __author__ = "Jim Guichard, Reinaldo Penno"
 __copyright__ = "Copyright(c) 2014, Cisco Systems, Inc."
 __version__ = "0.2"
 __email__ = "jguichar@cisco.com, rapenno@gmail.com"
 __status__ = "alpha"
 
-
 """
 Manage LOCAL service [and associated thread] starting and stopping
 """
 
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 #: constants
 DPCP = 'data_plane_control_port'

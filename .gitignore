@@ -6,6 +6,9 @@ __pycache__/
 *$py.class
 .idea/
 .gitignore
+*.json
+*.jpg
+*.mp4
 
 # C extensions
 *.so
