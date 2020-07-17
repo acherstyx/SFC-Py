@@ -22,12 +22,12 @@ __package__ = 'sfc'
 
 # TODO: the whole sfc-py module should be revisited/refactored to avoid disable
 #       the flake8 quality assurance checkings (noqa)
-from sfc.common import classifier # noqa
-from sfc.common import sfc_globals as _sfc_globals # noqa
-from sfc.common.odl_api import auto_sff_name, find_metadata, find_sff_locator, find_sf_locator # noqa
-from sfc.common.odl_api import get_metadata_from_odl, get_sffs_from_odl, get_sfp_from_odl, sf_local_host # noqa
-from sfc.common.launcher import start_sf, stop_sf, start_sff, stop_sff # noqa
-from sfc.cli import xe_cli, xr_cli, ovs_cli # noqa
+from sfc.common import classifier  # noqa
+from sfc.common import sfc_globals as _sfc_globals  # noqa
+from sfc.common.odl_api import auto_sff_name, find_metadata, find_sff_locator, find_sf_locator  # noqa
+from sfc.common.odl_api import get_metadata_from_odl, get_sffs_from_odl, get_sfp_from_odl, sf_local_host  # noqa
+from sfc.common.launcher import start_sf, stop_sf, start_sff, stop_sff  # noqa
+from sfc.cli import xe_cli, xr_cli, ovs_cli  # noqa
 
 __author__ = "Paul Quinn, Reinaldo Penno"
 __copyright__ = "Copyright(c) 2014, Cisco Systems, Inc."
@@ -42,6 +42,7 @@ plane implementation (sff_thread.py)
 
 app = flask.Flask(__name__)
 logger = logging.getLogger(__file__)
+logger.setLevel(logging.DEBUG)
 nfq_classifier = classifier.NfqClassifier()
 sfc_globals = _sfc_globals.sfc_globals
 

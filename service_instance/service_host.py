@@ -1,12 +1,18 @@
 import pickle
+import time
 from threading import Thread, Event
 from time import sleep
 import socket
 import random
+import logging
 
-SEND_BUFFER_SIZE = 1024 * 4
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+SEND_BUFFER_SIZE = 1024 * 40
 RECV_BUFFER_SIZE = 1024 * 1024
 DEBUG = True
+TIME_OUT = 1
 
 
 class ServiceHost:
@@ -22,7 +28,7 @@ class ServiceHost:
         @param recv_buffer:  和sendto方法中发出的消息格式一致的一个string
         @return: 返回bool量指示是否已经收到了一条完整的会话的结束
         """
-        print(flow_id, recv_buffer, ack_address)
+        # print(flow_id, recv_buffer, ack_address)
 
         if recv_buffer.startswith(b'over_'):
             serial = int(recv_buffer.split(b'_')[1])
@@ -42,6 +48,7 @@ class ServiceHost:
         sock_ack = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         ack_address = (ack_address, serial)
         sock_ack.sendto(f'{serial}_{pos}_ack'.encode(), ack_address)
+        logger.debug("ACK reply is send to %s:%s", ack_address, serial)
 
         if str(flow_id) not in self.__buffer:
             self.__buffer[str(flow_id)] = {}
@@ -102,26 +109,38 @@ class ServiceHost:
 
             e.set()
 
+            start = time.time()
+
+            duplicated = 0
             while position:  # send: [serial]_[pos]_data
                 for pos in position:
                     send_func(f"{serial[0]}_{pos}_".encode() + msg[pos:pos + SEND_BUFFER_SIZE])
-                # sleep(0.1)
+                duplicated += 1
+                logger.debug("Serial %s Retry: %s", serial[0], duplicated)
+                sleep(0.1)
+                # time out
+                if time.time() - start > TIME_OUT:
+                    logger.warning("Time out for sending message: %s", msg)
+                    break
 
             while serial:  # send: over_[serial]
                 send_func(f'over_{serial[0]}'.encode())
+                if time.time() - start > TIME_OUT:
+                    logger.warning("Time out for sending message: %s", msg)
+                    break
 
         def recv_ack():
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.bind(("", serial[0]))
             if DEBUG:
-                print("Waiting ACK...")
+                logger.info("Start receiving ACK...")
 
             while position:  # ack: [serial]_[pos]_ack
                 data, _ = sock.recvfrom(1024)
                 ack_serial = int(data.split(b'_')[0])
                 pos = int(data.split(b'_')[1])
                 if DEBUG:
-                    print("Receive ack:", ack_serial, pos)
+                    logger.debug("Receive ack: %s %s", ack_serial, pos)
                 if ack_serial == serial[0] and pos in position:
                     position.remove(pos)
 
@@ -131,6 +150,7 @@ class ServiceHost:
                 ack_over = data.split(b'_')[1]
                 if ack_serial == serial[0] and ack_over == b'over':
                     serial.remove(ack_serial)
+            sock.close()
 
         position = []
         serial = [random.randint(1000, 65500)]
@@ -139,14 +159,12 @@ class ServiceHost:
 
         t1 = Thread(target=sendto, args=(msg,))
         t1.start()
-        print("started")
+        logger.info("Host start to send...")
 
-        print("Wait start")
         e.wait()
-        print("start ack")
+
         t2 = Thread(target=recv_ack)
         t2.start()
-        t2.join()
         t1.join()
 
     @staticmethod

@@ -9,7 +9,7 @@ import sys
 serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # 获取本地主机名
-host = "127.0.0.1"
+host = "0.0.0.0"
 
 port = 1234
 
@@ -21,7 +21,7 @@ while True:
     # 建立客户端连接
     # clientsocket, addr = serversocket.recvfrom()
 
-    data, addr = serversocket.recvfrom(1024)
+    data, addr = serversocket.recvfrom(10240)
     print("连接地址: %s" % str(addr))
-    print(data)
+    print(data[28:])
     # s.close()

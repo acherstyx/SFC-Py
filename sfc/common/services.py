@@ -42,6 +42,7 @@ All supported services
 """
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 #: Global flags used for indication of current packet processing status
 # Packet needs more processing within this SFF
@@ -283,8 +284,8 @@ class BasicService(object):
         :param addr: IP address and port to which data are passed
         :type addr: tuple
         """
-        # logger.info('[%s] service received packet from %s:', self.service_type, addr)
-        # logger.info('[%s] the data in packet is: %s', self.service_type, data[60:].decode('utf-8'))
+        logger.info('[%s] service received packet from %s:', self.service_type, addr)
+        logger.info('[%s] the data in packet is: %s', self.service_type, data[60:].decode('utf-8'))
         rw_data = self._process_incoming_packet(data, addr)
         # TODO: 按照这里的处理rw_data可以修改服务链中的报文内容
         # rw_data += "[processed by {}]".format(self.service_type).encode('utf-8')
@@ -679,10 +680,20 @@ class MyReliableConnectionService(BasicService):
 
         self.host = ServiceHost()
 
+        self.address = None
+        self.header = None
+
     def process_datagram(self, data, addr):
-        self.store_and_process(data[60:], addr)
+        self.address = addr
+        self.header = data[:60]
+        self.store_and_process(data, addr)
+
+    def send(self, data):
+        logger.info("[%s] sending data: %s", self.service_type, data)
+        super(MyReliableConnectionService, self).process_datagram(self.header + data, self.address)
 
     def store_and_process(self, data, addr):
+        data = data[60:]
         serial = self.host.get_serial(data)
 
         end = self.host.buffer(flow_id=serial,
@@ -692,8 +703,9 @@ class MyReliableConnectionService(BasicService):
             logger.info("[%s] Receive full message with serial %s!!!", self.service_type, serial)
             flow_data = self.host.fetch(serial, serial)
             flow_image = decode_base64_image(flow_data)
-            plt.imshow(flow_image)
-            plt.show()
-
+            # plt.imshow(flow_image)
+            # plt.show()
+            send_thread = Thread(target=self.host.sendto,args=(flow_data, self.send))
+            send_thread.start()
         else:
             logger.info("[%s] Receive part message with serial %s", self.service_type, serial)
