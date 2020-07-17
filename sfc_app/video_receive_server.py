@@ -5,7 +5,7 @@ from service_instance.service_host import ServiceHost
 from service_instance.function.image_processing import *
 import cv2
 
-RECEIVE_BUFFER = 1024 * 41
+RECEIVE_BUFFER = 1024 * 1024
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ while True:
 
     serial = reliable_host.get_serial(data)
 
-    over = reliable_host.buffer(serial, data, None)
+    over = reliable_host.buffer(serial, data, "127.0.0.1")
 
     if over:
         image_raw = reliable_host.fetch(serial, serial)

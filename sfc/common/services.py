@@ -438,8 +438,8 @@ class MySffServer(BasicService):
             sff_name = super(MySffServer, self).get_name()
             next_hop = local_data_plane_path[sff_name][service_path][service_index]
         except KeyError:
-            logger.error('Could not determine next service hop. SP: %d, SI: %d',
-                         service_path, service_index)
+            logger.info('Could not determine next service hop. SP: %d, SI: %d',
+                        service_path, service_index)
             pass
         return next_hop
 
@@ -704,7 +704,8 @@ class MyReliableConnectionService(BasicService):
             flow_image = decode_base64_image(flow_data)
             # plt.imshow(flow_image)
             # plt.show()
-            flow_data = base64_histogram(flow_data)
+            # flow_data = base64_histogram(flow_data)
+            flow_data = encode_image_to_base64(flow_image[..., 0])
             send_thread = Thread(target=self.host.sendto, args=(flow_data, self.send))
             send_thread.start()
         else:

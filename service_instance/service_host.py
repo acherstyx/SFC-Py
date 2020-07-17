@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 SEND_BUFFER_SIZE = 1024 * 40
 RECV_BUFFER_SIZE = 1024 * 1024
 DEBUG = True
-TIME_OUT = 5
-DUPLICATED_LIMIT = 3
+TIME_OUT = 1
+DUPLICATED_LIMIT = 5
 
 
 class ServiceHost:
@@ -111,6 +111,8 @@ class ServiceHost:
 
             e.set()
 
+            timeout_mark = False
+
             start = time.time()
             duplicated = 0
             while position:  # send: [serial]_[pos]_data
@@ -118,20 +120,26 @@ class ServiceHost:
                     send_func(f"{serial[0]}_{pos}_".encode() + msg[pos:pos + SEND_BUFFER_SIZE])
                 duplicated += 1
                 logger.debug("Serial %s Retry: %s", serial[0], duplicated)
-                sleep(0.1)
+                sleep(0.3)
                 # time out
                 if time.time() - start > TIME_OUT:
+                    timeout_mark = True
                     break
                 if duplicated > DUPLICATED_LIMIT:
+                    timeout_mark = True
                     break
+
+            # if timeout_mark:
+            #     exit()
 
             start = time.time()
             duplicated = 0
             while serial:  # send: over_[serial]
                 send_func(f'over_{serial[0]}'.encode())
+                sleep(0.5)
                 duplicated += 1
                 if time.time() - start > TIME_OUT:
-                    logger.warning("Time out for sending message: %s", msg[:min(30, len(msg))])
+                    logger.warning("Time out for sending over msg.", msg[:min(30, len(msg))])
                     break
                 if duplicated > DUPLICATED_LIMIT:
                     break
@@ -140,8 +148,14 @@ class ServiceHost:
             if DEBUG:
                 logger.info("Start receiving ACK...")
 
+            start = time.time()
             while position:  # ack: [serial]_[pos]_ack
-                data, _ = sock.recvfrom(1024)
+                try:
+                    data, _ = sock.recvfrom(1024)
+                except socket.timeout:
+                    position.clear()
+                    break
+
                 ack_serial = int(data.split(b'_')[0])
                 try:
                     pos = int(data.split(b'_')[1])
@@ -151,13 +165,21 @@ class ServiceHost:
                     logger.debug("Receive ack: %s %s", ack_serial, pos)
                 if ack_serial == serial[0] and pos in position:
                     position.remove(pos)
+                if time.time() - start > TIME_OUT:
+                    break
 
             while serial:  # ack: [serial]_over
-                data, _ = sock.recvfrom(1024)
+                try:
+                    data, _ = sock.recvfrom(1024)
+                except socket.timeout:
+                    logger.warning("Time out for waiting ACK: %s", msg[:min(30, len(msg))])
+                    serial.clear()
+                    break
                 ack_serial = int(data.split(b'_')[0])
                 ack_over = data.split(b'_')[1]
                 if ack_serial == serial[0] and ack_over == b'over':
                     serial.remove(ack_serial)
+
             sock.close()
 
         position = []
@@ -168,6 +190,7 @@ class ServiceHost:
                 serial = [random.randint(1000, 65500)]
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.bind(("", serial[0]))
+                sock.settimeout(5)
                 break
             except OSError:
                 pass
@@ -184,6 +207,7 @@ class ServiceHost:
         t2 = Thread(target=recv_ack)
         t2.start()
         t1.join()
+        t2.join()
 
     @staticmethod
     def get_serial(recv_buffer):

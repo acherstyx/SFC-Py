@@ -3,7 +3,7 @@ __package__ = "sfc_app"
 import cv2
 import logging
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.CRITICAL)
 from control_layer.connection.client_wrapper import ClientConnection
 from .app_config import *
 from service_instance.function.image_processing import encode_image_to_base64
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         sleep(0.1)
 
         while True:
-            if len(send_threads) < 10:
+            if len(send_threads) < 100:
                 break
         # sleep(0.1)
         # new_send_thread.join()

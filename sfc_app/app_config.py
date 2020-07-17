@@ -7,8 +7,10 @@ for path in sfc_instance.get_rendered_sfp()["rendered-service-paths"]["rendered-
 sfp_id_list.sort()
 
 SERVER_IP = "192.168.225.1"
+# SERVER_IP = "127.0.0.1"
 SERVER_PORT = 1234
 
 SFF_IP = "192.168.225.131"
+# SFF_IP = "127.0.0.1"
 SFF_PORT = 4789
 SFP_ID = sfp_id_list[0]
