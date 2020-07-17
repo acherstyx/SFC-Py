@@ -276,6 +276,6 @@ if __name__ == "__main__":
     sfc_connection.add_service_node("Node1", "SF1", "SFF1", "127.0.0.1")
     sfc_connection.add_service_node("Node2", "SF2", "SFF1", "127.0.0.1")
     sfc_connection.add_service_node("Node3", "SF3", "SFF1", "127.0.0.1")
-    sfc_connection.add_sff("SFF1", "Node1", "127.0.0.1", 4789, ["SF1", "SF2", "SF3"])
+    sfc_connection.add_sff("SFF1", "Node1", "192.168.225.131", 4789, ["SF1", "SF2", "SF3"])
     sfc_connection.add_sfc("chain-1", ["reliable", "dpi"])
     sfc_connection.apply_config()

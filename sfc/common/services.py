@@ -26,7 +26,7 @@ from ..nsh import decode as nsh_decode
 from ..nsh.encode import add_sf_to_trace_pkt
 from ..nsh.service_index import process_service_index
 
-from function.image_processing import *
+from service_instance.function.image_processing import *
 from service_instance.service_host import ServiceHost
 
 # from service_instance.performance_statistic import *

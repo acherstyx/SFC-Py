@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 创建 socket 对象
-serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # 获取本地主机名
 host = "0.0.0.0"
@@ -19,7 +19,7 @@ host = "0.0.0.0"
 port = 1234
 
 # 绑定端口号
-serversocket.bind((host, port))
+server_socket.bind((host, port))
 
 logger.info("UDP Server start to receive image at %s:%s", host, port)
 
@@ -29,7 +29,7 @@ while True:
     # 建立客户端连接
     # clientsocket, addr = serversocket.recvfrom()
 
-    data, addr = serversocket.recvfrom(RECEIVE_BUFFER)
+    data, addr = server_socket.recvfrom(RECEIVE_BUFFER)
     data = data[28:]
     logger.debug("Receive data: %s", data)
 

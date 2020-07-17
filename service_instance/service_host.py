@@ -8,10 +8,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-SEND_BUFFER_SIZE = 1024 * 4
+SEND_BUFFER_SIZE = 1024 * 40
 RECV_BUFFER_SIZE = 1024 * 1024
 DEBUG = True
 TIME_OUT = 5
+DUPLICATED_LIMIT = 3
 
 
 class ServiceHost:
@@ -111,7 +112,6 @@ class ServiceHost:
             e.set()
 
             start = time.time()
-
             duplicated = 0
             while position:  # send: [serial]_[pos]_data
                 for pos in position:
@@ -122,12 +122,19 @@ class ServiceHost:
                 # time out
                 if time.time() - start > TIME_OUT:
                     break
+                if duplicated > DUPLICATED_LIMIT:
+                    break
 
+            start = time.time()
+            duplicated = 0
             while serial:  # send: over_[serial]
+                send_func(f'over_{serial[0]}'.encode())
+                duplicated += 1
                 if time.time() - start > TIME_OUT:
                     logger.warning("Time out for sending message: %s", msg[:min(30, len(msg))])
                     break
-                send_func(f'over_{serial[0]}'.encode())
+                if duplicated > DUPLICATED_LIMIT:
+                    break
 
         def recv_ack():
             if DEBUG:
@@ -177,7 +184,6 @@ class ServiceHost:
         t2 = Thread(target=recv_ack)
         t2.start()
         t1.join()
-        sock.close()
 
     @staticmethod
     def get_serial(recv_buffer):

@@ -1,4 +1,4 @@
-from function.image_processing import *
+from service_instance.function.image_processing import *
 import random as rnd
 
 import sys

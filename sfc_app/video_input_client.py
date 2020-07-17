@@ -3,14 +3,14 @@ __package__ = "sfc_app"
 import cv2
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 from control_layer.connection.client_wrapper import ClientConnection
 from .app_config import *
 from service_instance.function.image_processing import encode_image_to_base64
 from threading import Thread
 from time import sleep
 
-logger = logging.getLogger(__name__,)
+logger = logging.getLogger(__name__, )
 
 if __name__ == '__main__':
     cap = cv2.VideoCapture("video_sample.mp4")
@@ -37,18 +37,21 @@ if __name__ == '__main__':
             logger.info("End of video, exiting...")
             break
 
-        conn.send_long(encode_image_to_base64(frame))
+        cv2.imshow("UDP Client", frame)
+        cv2.waitKey(1)
 
-        # new_send_thread = Thread(target=conn.send_long, args=(encode_image_to_base64(frame),))
-        # new_send_thread.start()
-        # send_threads.append(new_send_thread)
-        #
-        # join_thread = Thread(target=auto_join, args=(new_send_thread,))
-        # join_thread.start()
-        # sleep(0.5)
-        #
-        # while True:
-        #     if len(send_threads) < 5:
-        #         break
+        # conn.send_long(encode_image_to_base64(frame))
+
+        new_send_thread = Thread(target=conn.send_long, args=(encode_image_to_base64(frame),))
+        new_send_thread.start()
+        send_threads.append(new_send_thread)
+
+        join_thread = Thread(target=auto_join, args=(new_send_thread,))
+        join_thread.start()
+        sleep(0.1)
+
+        while True:
+            if len(send_threads) < 10:
+                break
         # sleep(0.1)
         # new_send_thread.join()
