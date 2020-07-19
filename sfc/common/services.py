@@ -62,8 +62,10 @@ IDS = 'ids'
 SF = 'sf'
 SFF = 'sff'
 CUDP = 'cudp'
-HISTOGRAM = 'histogram'
+# HISTOGRAM = 'histogram'
 RELIABLE = 'reliable'
+# Service for display
+IMAGE_CROP = 'image_crop'
 
 # For VxLAN-gpe
 GPE_NP_NSH = 0x4
@@ -93,8 +95,8 @@ def find_service(service_type):
     elif service_type == QOS or service_type == IDS:
         # return a generic service for currently unimplemented services
         return MyService
-    elif service_type == HISTOGRAM:
-        return MyImageHistogramService
+    # elif service_type == HISTOGRAM:
+    #     return MyImageHistogramService
     elif service_type == RELIABLE:
         return MyReliableConnectionService
     else:
@@ -628,50 +630,54 @@ class MySffServer(BasicService):
         logger.error('Error received:', exc)
 
 
-# 新增的自定义服务
-class MyImageHistogramService(BasicService):
-    def __init__(self, loop):
-        super(MyImageHistogramService, self).__init__(loop)
-
-        self.service_type = HISTOGRAM
-        self.image_buffer = {}
-
-    # override processing dg
-    def process_datagram(self, data, addr):
-        # logger.info('[%s] service received packet from %s:', self.service_type, addr)
-        # logger.info('[%s] the data in packet (before) is: %s', self.service_type, data[60:].decode('utf-8'))
-
-        self.__process_image(data[60:].decode('utf-8'))
-
-    def __process_image(self, msg: str):
-        split = msg.split(' ')
-        serial = split[0]
-        index = int(split[1])
-        image_part = split[2]
-        try:
-            self.image_buffer[serial][index] = image_part
-        except KeyError:
-            self.image_buffer[serial] = ["" for _ in range(index)]
-        # logger.info("ImageProcessing: " + str(index))
-
-        if index == 0:
-            try:
-                image_full = ""
-                while True:
-                    try:
-                        image_full += self.image_buffer[serial][index]
-                        index += 1
-                    except IndexError:
-                        break
-
-                histogram = base64_histogram(image_full.encode('utf-8'))
-                view_base64_image(histogram)
-                logger.info("[%s] Successfully generate histogram for image serial %s.", self.service_type, serial)
-            except Exception as e:
-                logger.info("[%s] Generate histogram for serial %s failed.", self.service_type, serial)
+# # 新增的自定义服务
+# class MyImageHistogramService(BasicService):
+#     def __init__(self, loop):
+#         super(MyImageHistogramService, self).__init__(loop)
+#
+#         self.service_type = HISTOGRAM
+#         self.image_buffer = {}
+#
+#     # override processing dg
+#     def process_datagram(self, data, addr):
+#         # logger.info('[%s] service received packet from %s:', self.service_type, addr)
+#         # logger.info('[%s] the data in packet (before) is: %s', self.service_type, data[60:].decode('utf-8'))
+#
+#         self.__process_image(data[60:].decode('utf-8'))
+#
+#     def __process_image(self, msg: str):
+#         split = msg.split(' ')
+#         serial = split[0]
+#         index = int(split[1])
+#         image_part = split[2]
+#         try:
+#             self.image_buffer[serial][index] = image_part
+#         except KeyError:
+#             self.image_buffer[serial] = ["" for _ in range(index)]
+#         # logger.info("ImageProcessing: " + str(index))
+#
+#         if index == 0:
+#             try:
+#                 image_full = ""
+#                 while True:
+#                     try:
+#                         image_full += self.image_buffer[serial][index]
+#                         index += 1
+#                     except IndexError:
+#                         break
+#
+#                 histogram = base64_histogram(image_full.encode('utf-8'))
+#                 view_base64_image(histogram)
+#                 logger.info("[%s] Successfully generate histogram for image serial %s.", self.service_type, serial)
+#             except Exception as e:
+#                 logger.info("[%s] Generate histogram for serial %s failed.", self.service_type, serial)
 
 
 class MyReliableConnectionService(BasicService):
+    """
+    A service for testing reliable connection in SFC.
+    """
+
     def __init__(self, loop):
         super(MyReliableConnectionService, self).__init__(loop)
 
@@ -701,12 +707,33 @@ class MyReliableConnectionService(BasicService):
         if end:
             logger.info("[%s] Receive full message with serial %s!!!", self.service_type, serial)
             flow_data = self.host.fetch(serial, serial)
-            flow_image = decode_base64_image(flow_data)
-            # plt.imshow(flow_image)
-            # plt.show()
-            # flow_data = base64_histogram(flow_data)
-            flow_data = encode_image_to_base64(flow_image[..., 0])
+
+            # do something with the data
+            flow_data = self.process_data(flow_data)
+
             send_thread = Thread(target=self.host.sendto, args=(flow_data, self.send))
             send_thread.start()
         else:
             logger.info("[%s] Receive part message with serial %s", self.service_type, serial)
+
+    def process_data(self, data):
+        return data
+
+
+class MyImageCropService(MyReliableConnectionService):
+    def process_data(self, data):
+        image = decode_base64_image(data)
+
+        size = np.shape(image)
+
+        logger.debug("[%s] receive image with size: %s", self.service_type, size)
+
+        x = size[0]
+        y = size[1]
+
+        image = image[int(0.1 * x):int(0.9 * x), int(0.5 * x):int(0.9 * x)]
+
+        cv2.imshow("Image Crop", image)
+        cv2.waitKey(1)
+
+        return encode_image_to_base64(image)

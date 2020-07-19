@@ -36,7 +36,7 @@ if __name__ == '__main__':
         if not ret:
             logger.info("End of video, exiting...")
             break
-
+        frame = cv2.resize(frame, None, fx=0.3, fy=0.3)
         cv2.imshow("UDP Client", frame)
         cv2.waitKey(1)
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         sleep(0.1)
 
         while True:
-            if len(send_threads) < 100:
+            if len(send_threads) < 10:
                 break
         # sleep(0.1)
         # new_send_thread.join()
