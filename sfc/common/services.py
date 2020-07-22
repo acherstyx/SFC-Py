@@ -737,3 +737,39 @@ class MyImageCropService(MyReliableConnectionService):
         cv2.waitKey(1)
 
         return encode_image_to_base64(image)
+
+
+class MyGrayScaleService(MyReliableConnectionService):
+    def process_data(self, data):
+        image = decode_base64_image(data)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        return encode_image_to_base64(gray)
+
+
+class MyDetectService(MyReliableConnectionService):
+    def process_data(self, data):
+        raise NotImplementedError
+
+    @staticmethod
+    def detect(data, config_file):
+        from service_instance.function.haar_cascade_object_detection import haar_cascade_detect
+
+        image = decode_base64_image(data)
+        faces = haar_cascade_detect(image, config_file)
+
+        for (x, y, w, h) in faces:
+            image = cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        return encode_image_to_base64(image)
+
+
+class MyFaceDetectService(MyDetectService):
+    def process_data(self, data):
+        config_file = "service_instance/function/.haarcascade/haarcascade_frontalface_default.xml"
+        return self.detect(data, config_file)
+
+
+class MyEyeDetectService(MyDetectService):
+    def process_data(self, data):
+        config_file = "service_instance/function/.haarcascade/haarcascade_eye.xml"
+        return self.detect(data, config_file)
