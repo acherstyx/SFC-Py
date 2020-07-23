@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 SEND_BUFFER_SIZE = 1024 * 40
 RECV_BUFFER_SIZE = 1024 * 1024
 DEBUG = True
-TIME_OUT = 1
-DUPLICATED_LIMIT = 5
+TIME_OUT = 10
+DUPLICATED_LIMIT = 10
 
 
 class ServiceHost:
@@ -120,7 +120,7 @@ class ServiceHost:
                     send_func(f"{serial[0]}_{pos}_".encode() + msg[pos:pos + SEND_BUFFER_SIZE])
                 duplicated += 1
                 logger.debug("Serial %s Retry: %s", serial[0], duplicated)
-                sleep(0.3)
+                sleep(0.1)
                 # time out
                 if time.time() - start > TIME_OUT:
                     timeout_mark = True
@@ -129,8 +129,8 @@ class ServiceHost:
                     timeout_mark = True
                     break
 
-            # if timeout_mark:
-            #     exit()
+            if timeout_mark:
+                exit()
 
             start = time.time()
             duplicated = 0

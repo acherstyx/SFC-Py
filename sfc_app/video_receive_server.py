@@ -39,5 +39,8 @@ while True:
 
     if over:
         image_raw = reliable_host.fetch(serial, serial)
-        cv2.imshow("UDP Server", decode_base64_image(image_raw))
+        image = decode_base64_image(image_raw)
+        if np.shape(image)[0] == 0:
+            pass
+        cv2.imshow("UDP Server", image)
         cv2.waitKey(1)

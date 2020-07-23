@@ -2,6 +2,7 @@ __package__ = "sfc_app"
 
 import cv2
 import logging
+import numpy as np
 
 logging.basicConfig(level=logging.CRITICAL)
 from control_layer.connection.client_wrapper import ClientConnection
@@ -19,12 +20,6 @@ if __name__ == '__main__':
 
     send_threads = []
 
-    conn = ClientConnection(dest_ip=SERVER_IP,
-                            dest_port=SERVER_PORT,
-                            sff_ip=SFF_IP,
-                            sff_port=SFF_PORT,
-                            sfp_id=SFP_ID)
-
 
     def auto_join(my_tread):
         my_tread.join()
@@ -32,11 +27,24 @@ if __name__ == '__main__':
 
 
     while cap.isOpened():
+        try:
+            conn = ClientConnection(dest_ip=SERVER_IP,
+                                    dest_port=SERVER_PORT,
+                                    sff_ip=SFF_IP,
+                                    sff_port=SFF_PORT,
+                                    sfp_id=SFP_ID())
+        except KeyError:
+            logger.warning("Receive KeyError while loading SFP ID")
+            continue
+
         ret, frame = cap.read()
         if not ret:
             logger.info("End of video, exiting...")
             break
+        if np.shape(frame[0]) == 0:
+            continue
         frame = cv2.resize(frame, None, fx=0.3, fy=0.3)
+
         cv2.imshow("UDP Client", frame)
         cv2.waitKey(1)
 
@@ -48,10 +56,11 @@ if __name__ == '__main__':
 
         join_thread = Thread(target=auto_join, args=(new_send_thread,))
         join_thread.start()
-        sleep(0.1)
+        sleep(3)
 
         while True:
-            if len(send_threads) < 10:
+            if len(send_threads) < 100:
                 break
-        # sleep(0.1)
+
+        # sleep(3)
         # new_send_thread.join()

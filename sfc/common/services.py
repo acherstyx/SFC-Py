@@ -66,6 +66,9 @@ CUDP = 'cudp'
 RELIABLE = 'reliable'
 # Service for display
 IMAGE_CROP = 'image_crop'
+GRAY_SCALE = 'gray_scale'
+FACE_DETECT = 'face_detect'
+EYE_DETECT = 'eye_detect'
 
 # For VxLAN-gpe
 GPE_NP_NSH = 0x4
@@ -95,10 +98,14 @@ def find_service(service_type):
     elif service_type == QOS or service_type == IDS:
         # return a generic service for currently unimplemented services
         return MyService
-    # elif service_type == HISTOGRAM:
-    #     return MyImageHistogramService
-    elif service_type == RELIABLE:
-        return MyReliableConnectionService
+    elif service_type == IMAGE_CROP:
+        return MyImageCropService
+    elif service_type == GRAY_SCALE:
+        return MyGrayScaleService
+    elif service_type == FACE_DETECT:
+        return MyFaceDetectService
+    elif service_type == EYE_DETECT:
+        return MyEyeDetectService
     else:
         raise ValueError('Service "%s" not supported' % service_type)
 
@@ -352,6 +359,10 @@ class BasicService(object):
         logger.warning('Closing transport', exc)
         loop = asyncio.get_event_loop()
         loop.stop()
+
+    @staticmethod
+    def error_received(exc):
+        logger.error('Error received:', exc)
 
 
 class MyService(BasicService):
@@ -721,6 +732,10 @@ class MyReliableConnectionService(BasicService):
 
 
 class MyImageCropService(MyReliableConnectionService):
+    def __init__(self, loop):
+        super(MyImageCropService, self).__init__(loop)
+        self.service_type = IMAGE_CROP
+
     def process_data(self, data):
         image = decode_base64_image(data)
 
@@ -731,7 +746,7 @@ class MyImageCropService(MyReliableConnectionService):
         x = size[0]
         y = size[1]
 
-        image = image[int(0.1 * x):int(0.9 * x), int(0.5 * x):int(0.9 * x)]
+        image = image[int(0.1 * x):int(0.9 * x), int(0.1 * y):int(0.9 * y)]
 
         cv2.imshow("Image Crop", image)
         cv2.waitKey(1)
@@ -740,36 +755,60 @@ class MyImageCropService(MyReliableConnectionService):
 
 
 class MyGrayScaleService(MyReliableConnectionService):
+    def __init__(self, loop):
+        super(MyGrayScaleService, self).__init__(loop)
+        self.service_type == GRAY_SCALE
+
     def process_data(self, data):
         image = decode_base64_image(data)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # cv2.imshow("Gray Scale", gray)
+        # cv2.waitKey()
         return encode_image_to_base64(gray)
 
 
 class MyDetectService(MyReliableConnectionService):
+    def __init__(self, loop):
+        super(MyDetectService, self).__init__(loop)
+        self.service_type = "detect"
+        self.logger = logging.getLogger("Detect_Service")
+        log_file = logging.FileHandler("detect_service.log", "w")
+
+        formatter = logging.Formatter(
+            '[%(asctime)s] - [logger name :%(name)s] - [%(filename)s file line:%(lineno)d] - %(levelname)s: %(message)s')
+        log_file.setFormatter(formatter)
+
+        self.logger.addHandler(log_file)
+        self.logger.setLevel(logging.DEBUG)
+
     def process_data(self, data):
         raise NotImplementedError
 
-    @staticmethod
-    def detect(data, config_file):
+    def detect(self, data, config_file):
         from service_instance.function.haar_cascade_object_detection import haar_cascade_detect
 
-        image = decode_base64_image(data)
-        faces = haar_cascade_detect(image, config_file)
+        current_image = decode_base64_image(data)
+        faces = haar_cascade_detect(current_image, config_file)
 
         for (x, y, w, h) in faces:
-            image = cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            current_image = cv2.rectangle(current_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        self.logger.info("Object detect result: %s", faces)
 
-        return encode_image_to_base64(image)
+        # cv2.imshow("Object Detect", current_image)
+        # cv2.waitKey(1)
+
+        return encode_image_to_base64(current_image)
 
 
 class MyFaceDetectService(MyDetectService):
     def process_data(self, data):
         config_file = "service_instance/function/.haarcascade/haarcascade_frontalface_default.xml"
+        logger.debug("[Face Detect] Receive image")
         return self.detect(data, config_file)
 
 
 class MyEyeDetectService(MyDetectService):
     def process_data(self, data):
         config_file = "service_instance/function/.haarcascade/haarcascade_eye.xml"
+        logger.debug("[Eye Detect] Receive image")
         return self.detect(data, config_file)
