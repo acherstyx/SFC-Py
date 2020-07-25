@@ -4,6 +4,11 @@ import logging
 from service_instance.service_host import ServiceHost
 from service_instance.function.image_processing import *
 import cv2
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+mpl.rcParams['toolbar'] = 'None'
+
 
 RECEIVE_BUFFER = 1024 * 1024
 
@@ -42,5 +47,17 @@ while True:
         image = decode_base64_image(image_raw)
         if np.shape(image)[0] == 0:
             pass
-        cv2.imshow("UDP Server", image)
-        cv2.waitKey(1)
+        # cv2.imshow("UDP Server", image)
+        # cv2.waitKey(1)
+        fig = plt.figure("UDP Server/Object Detection", clear=True, figsize=(1.6 * 3, 0.9 * 3))
+        plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
+                            hspace=0, wspace=0)
+        plt.axis('off')
+        plt.margins(0, 0)
+        plt.gca().xaxis.set_major_locator(plt.NullLocator())
+        plt.gca().yaxis.set_major_locator(plt.NullLocator())
+        plt.ion()
+        plt.show()
+        plt.imshow(image, interpolation='none')
+        plt.draw()
+        plt.pause(0.001)

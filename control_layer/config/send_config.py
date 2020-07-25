@@ -279,5 +279,5 @@ if __name__ == "__main__":
     sfc_connection.add_service_node("Node3", "SF3", "SFF1", "127.0.0.1")
     sfc_connection.add_service_node("Node4", "SF4", "SFF1", "127.0.0.1")
     sfc_connection.add_sff("SFF1", "Node1", "127.0.0.1", 4789, ["SF1", "SF2", "SF3", "SF4"])
-    sfc_connection.add_sfc("chain-1", ["image_crop", "gray_scale", "face_detect"])
+    sfc_connection.add_sfc("chain-1", ["gray_scale", "eye_detect"])
     sfc_connection.apply_config()

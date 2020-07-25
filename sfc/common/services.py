@@ -31,6 +31,10 @@ from service_instance.service_host import ServiceHost
 
 # from service_instance.performance_statistic import *
 
+import matplotlib as mpl
+
+mpl.rcParams['toolbar'] = 'None'
+
 __author__ = "Jim Guichard, Reinaldo Penno"
 __copyright__ = "Copyright(c) 2014, Cisco Systems, Inc."
 __version__ = "0.3"
@@ -641,49 +645,6 @@ class MySffServer(BasicService):
         logger.error('Error received:', exc)
 
 
-# # 新增的自定义服务
-# class MyImageHistogramService(BasicService):
-#     def __init__(self, loop):
-#         super(MyImageHistogramService, self).__init__(loop)
-#
-#         self.service_type = HISTOGRAM
-#         self.image_buffer = {}
-#
-#     # override processing dg
-#     def process_datagram(self, data, addr):
-#         # logger.info('[%s] service received packet from %s:', self.service_type, addr)
-#         # logger.info('[%s] the data in packet (before) is: %s', self.service_type, data[60:].decode('utf-8'))
-#
-#         self.__process_image(data[60:].decode('utf-8'))
-#
-#     def __process_image(self, msg: str):
-#         split = msg.split(' ')
-#         serial = split[0]
-#         index = int(split[1])
-#         image_part = split[2]
-#         try:
-#             self.image_buffer[serial][index] = image_part
-#         except KeyError:
-#             self.image_buffer[serial] = ["" for _ in range(index)]
-#         # logger.info("ImageProcessing: " + str(index))
-#
-#         if index == 0:
-#             try:
-#                 image_full = ""
-#                 while True:
-#                     try:
-#                         image_full += self.image_buffer[serial][index]
-#                         index += 1
-#                     except IndexError:
-#                         break
-#
-#                 histogram = base64_histogram(image_full.encode('utf-8'))
-#                 view_base64_image(histogram)
-#                 logger.info("[%s] Successfully generate histogram for image serial %s.", self.service_type, serial)
-#             except Exception as e:
-#                 logger.info("[%s] Generate histogram for serial %s failed.", self.service_type, serial)
-
-
 class MyReliableConnectionService(BasicService):
     """
     A service for testing reliable connection in SFC.
@@ -724,6 +685,7 @@ class MyReliableConnectionService(BasicService):
 
             send_thread = Thread(target=self.host.sendto, args=(flow_data, self.send))
             send_thread.start()
+            send_thread.join()
         else:
             logger.info("[%s] Receive part message with serial %s", self.service_type, serial)
 
@@ -748,8 +710,20 @@ class MyImageCropService(MyReliableConnectionService):
 
         image = image[int(0.1 * x):int(0.9 * x), int(0.1 * y):int(0.9 * y)]
 
-        cv2.imshow("Image Crop", image)
-        cv2.waitKey(1)
+        # cv2.imshow("Image Crop", image)
+        # cv2.waitKey(1)
+        fig = plt.figure("Image Crop", clear=True, figsize=(1.6 * 5, 0.9 * 5))
+        plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
+                            hspace=0, wspace=0)
+        plt.axis('off')
+        plt.margins(0, 0)
+        plt.gca().xaxis.set_major_locator(plt.NullLocator())
+        plt.gca().yaxis.set_major_locator(plt.NullLocator())
+        plt.ion()
+        plt.show()
+        plt.imshow(image, cmap="gray", interpolation='none')
+        plt.draw()
+        plt.pause(0.001)
 
         return encode_image_to_base64(image)
 
@@ -757,13 +731,26 @@ class MyImageCropService(MyReliableConnectionService):
 class MyGrayScaleService(MyReliableConnectionService):
     def __init__(self, loop):
         super(MyGrayScaleService, self).__init__(loop)
-        self.service_type == GRAY_SCALE
+        self.service_type = GRAY_SCALE
 
     def process_data(self, data):
         image = decode_base64_image(data)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # cv2.imshow("Gray Scale", gray)
-        # cv2.waitKey()
+        logger.debug("[gray scale] Receive image size: %s", np.shape(image))
+        cv2.putText(gray, "Processed By [Gray Scale] Service", (0, 30), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
+        fig = plt.figure("Gray_Scale", clear=True, figsize=(1.6 * 3, 0.9 * 3))
+        plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
+                            hspace=0, wspace=0)
+        plt.axis('off')
+        plt.margins(0, 0)
+        plt.gca().xaxis.set_major_locator(plt.NullLocator())
+        plt.gca().yaxis.set_major_locator(plt.NullLocator())
+        plt.ion()
+        plt.show()
+        plt.imshow(gray, cmap="gray", interpolation='none')
+        plt.draw()
+        plt.pause(0.001)
+
         return encode_image_to_base64(gray)
 
 
@@ -774,8 +761,10 @@ class MyDetectService(MyReliableConnectionService):
         self.logger = logging.getLogger("Detect_Service")
         log_file = logging.FileHandler("detect_service.log", "w")
 
+        # formatter = logging.Formatter(
+        #     '[%(asctime)s] - [logger name :%(name)s] - [%(filename)s file line:%(lineno)d] - %(levelname)s: %(message)s')
         formatter = logging.Formatter(
-            '[%(asctime)s] - [logger name :%(name)s] - [%(filename)s file line:%(lineno)d] - %(levelname)s: %(message)s')
+            '[%(asctime)s] [Object Detect Result (x, y, w, h)]: %(message)s')
         log_file.setFormatter(formatter)
 
         self.logger.addHandler(log_file)
@@ -792,7 +781,9 @@ class MyDetectService(MyReliableConnectionService):
 
         for (x, y, w, h) in faces:
             current_image = cv2.rectangle(current_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        self.logger.info("Object detect result: %s", faces)
+        self.logger.info("%s", faces)
+
+        cv2.putText(current_image, "Processed By [Object Detect] Service", (0, 45), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1)
 
         # cv2.imshow("Object Detect", current_image)
         # cv2.waitKey(1)
@@ -803,12 +794,12 @@ class MyDetectService(MyReliableConnectionService):
 class MyFaceDetectService(MyDetectService):
     def process_data(self, data):
         config_file = "service_instance/function/.haarcascade/haarcascade_frontalface_default.xml"
-        logger.debug("[Face Detect] Receive image")
+        logger.debug("[Face Detect] Receive image with size: %s", np.shape(decode_base64_image(data)))
         return self.detect(data, config_file)
 
 
 class MyEyeDetectService(MyDetectService):
     def process_data(self, data):
-        config_file = "service_instance/function/.haarcascade/haarcascade_eye.xml"
-        logger.debug("[Eye Detect] Receive image")
+        config_file = "service_instance/function/.haarcascade/haarcascade_eye_tree_eyeglasses.xml"
+        logger.debug("[Eye Detect] Receive image with size: %s", np.shape(decode_base64_image(data)))
         return self.detect(data, config_file)

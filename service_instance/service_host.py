@@ -30,6 +30,11 @@ class ServiceHost:
         """
         # print(flow_id, recv_buffer, ack_address)
 
+        logger.debug("[Server host] Buffering data, flow id: %s, ack address: %s, recv_buffer: %s",
+                     flow_id,
+                     ack_address,
+                     recv_buffer)
+
         if recv_buffer.startswith(b'over_'):
             serial = int(recv_buffer.split(b'_')[1])
             if ack_address is not None:
@@ -120,7 +125,7 @@ class ServiceHost:
                     send_func(f"{serial[0]}_{pos}_".encode() + msg[pos:pos + SEND_BUFFER_SIZE])
                 duplicated += 1
                 logger.debug("Serial %s Retry: %s", serial[0], duplicated)
-                sleep(0.1)
+                sleep(0.3)
                 # time out
                 if time.time() - start > TIME_OUT:
                     timeout_mark = True
@@ -136,7 +141,7 @@ class ServiceHost:
             duplicated = 0
             while serial:  # send: over_[serial]
                 send_func(f'over_{serial[0]}'.encode())
-                sleep(0.5)
+                sleep(0.1)
                 duplicated += 1
                 if time.time() - start > TIME_OUT:
                     logger.warning("Time out for sending over msg.", msg[:min(30, len(msg))])
@@ -154,15 +159,15 @@ class ServiceHost:
                     data, _ = sock.recvfrom(1024)
                 except socket.timeout:
                     position.clear()
-                    break
+                    # break
 
                 ack_serial = int(data.split(b'_')[0])
                 try:
                     pos = int(data.split(b'_')[1])
                 except ValueError as e:
                     logger.warning("Catch ValueError: %s", e)
-                if DEBUG:
-                    logger.debug("Receive ack: %s %s", ack_serial, pos)
+
+                logger.debug("Receive ack: %s %s", ack_serial, pos)
                 if ack_serial == serial[0] and pos in position:
                     position.remove(pos)
                 if time.time() - start > TIME_OUT:
@@ -177,10 +182,13 @@ class ServiceHost:
                     break
                 ack_serial = int(data.split(b'_')[0])
                 ack_over = data.split(b'_')[1]
+
                 if ack_serial == serial[0] and ack_over == b'over':
                     serial.remove(ack_serial)
+                    logger.debug("Receive over ack: %s", data)
 
             sock.close()
+            logger.debug("send thread exit.")
 
         position = []
 
